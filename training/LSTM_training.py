@@ -5,10 +5,32 @@ from sklearn import preprocessing
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Bidirectional, LSTM, Dense, Dropout
 
+from numpy import array
+from keras.preprocessing.text import one_hot
+from keras.preprocessing.sequence import pad_sequences
+from keras.models import Sequential
+from keras.layers.core import Activation, Dropout, Dense
+from keras.layers import Flatten, LSTM
+from keras.layers import GlobalMaxPooling1D
+from keras.models import Model
+from keras.layers.embeddings import Embedding
+from sklearn.model_selection import train_test_split
+from keras.preprocessing.text import Tokenizer
+from keras.layers import Input
+from keras.layers.merge import Concatenate
+from keras.layers import Bidirectional
+
+import pandas as pd
+import numpy as np
+import re
+
+import matplotlib.pyplot as plt
+
+
 class Training():
        def __init__(self):
-              self.n_future = 4  # next 4 bits of data
-              self.n_past = 30  # Past 30 bits
+              # self.n_future = 4  # next 4 bits of data
+              # self.n_past = 30  # Past 30 bits
 
               # load the dataset from csv into panda dataframe
               self.df = pd.read_csv(r'test_craig_vear_20201124.csv', header=0)
@@ -40,14 +62,16 @@ class Training():
               # overlayer column names to df columns
               self.df.columns = col_name
 
-       def prep_sets(self, feature, location):
-              self.feature = feature
+       def prep_sets(self, feature_x, feature_y, location):
+              self.feature_x = feature_x
+              self.feature_y = feature_y
+
               my_df = self.df
               # drop the rows that are NaN
-              my_df = my_df.dropna(subset=[self.feature])
+              my_df = my_df.dropna(subset=[self.feature_x])
 
               # delete rows that are noisy
-              my_df = my_df[my_df[self.feature] > 0]
+              my_df = my_df[my_df[self.feature_x] > 0]
 
               # reset index and make training set from only the feature I want
               my_df = my_df.reset_index(drop=True)
@@ -85,7 +109,10 @@ class Training():
               regressor.add(LSTM(units=self.n_past))
               regressor.add(Dropout(0.2))
               regressor.add(Dense(units = self.n_future,activation='linear'))
-              regressor.compile(optimizer='adam', loss='mean_squared_error',metrics=['acc'])
+              regressor.compile(optimizer=tf.keras.optimizers.Adam(0.0001),
+                                loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
+                                metrics=tf.keras.metrics.Accuracy(name='accuracy', dtype=None))
+              # regressor.compile(optimizer='adam', loss='mean_squared_error',metrics=['acc'])
               regressor.fit(x_train, y_train, epochs=2000, batch_size=32, verbose=1 )
 
 
@@ -103,7 +130,7 @@ class Training():
               print(f'prediction = {predict}')
 
               # save model
-              regressor.save(f'/models/EMR-3_RNN_{feature}.h5')
+              regressor.save(f'models/EMR-3_RNN_{feature}.h5')
               print (f'saved_RNN {feature}')
 
 
