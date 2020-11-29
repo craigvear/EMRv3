@@ -105,8 +105,8 @@ class Training():
         # print(f'prediction = {predict}')
         #
         # save model
-        regressor.save(f'/models/EMR-3_RNN_{label}.h5')
-        print (f'saved_RNN {label}')
+        regressor.save(f'/models/EMR-3_conv2D_{label}.h5')
+        print (f'saved_conv2D {label}')
 
 
 if __name__ == '__main__':
