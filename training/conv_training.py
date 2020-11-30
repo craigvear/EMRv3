@@ -80,6 +80,8 @@ class Training():
         # create model and train
         regressor = Sequential()
 
+        # reduced this from RNN to save time
+        # todo: replace with Transformer
         regressor.add(Bidirectional(LSTM(units=self.n_past, return_sequences=True, input_shape = (x_train.shape[1],1) ) ))
         regressor.add(Dropout(0.2))
         regressor.add(LSTM(units=self.n_past, return_sequences=True))
@@ -105,7 +107,7 @@ class Training():
         # print(f'prediction = {predict}')
         #
         # save model
-        regressor.save(f'/models/EMR-3_conv2D_{label}.h5')
+        regressor.save(f'models/EMR-3_conv2D_{label}.h5')
         print (f'saved_conv2D {label}')
 
 
@@ -115,9 +117,9 @@ if __name__ == '__main__':
     # 1st RNN = affect in(y) - move out(x)
     x_train = rnn.prep_sets(14)
     y_train = rnn.prep_sets(9)
-    rnn.train(x_train, y_train, 'affect->move')
+    rnn.train(x_train, y_train, 'affect-move')
 
     # 2nd RNN = move in(y) - affect out(x)
     # x_train = rnn.prep_sets(14)
     # y_train = rnn.prep_sets(9)
-    rnn.train(y_train, x_train, 'affect->move')
+    rnn.train(y_train, x_train, 'move-affect')
