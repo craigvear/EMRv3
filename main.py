@@ -1,9 +1,9 @@
-from engine import Scheduler
+from engine import AiDataEngine
 from time import sleep
 import trio
 
 
-engine = Scheduler()
+engine = AiDataEngine()
 
 
 async def child1():

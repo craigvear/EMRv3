@@ -4,13 +4,13 @@ import trio
 from random import randrange, random
 from time import sleep
 
-class Scheduler:
+class AiDataEngine:
     def __init__(self, speed=1):
         self.global_speed = speed
         self.interrupt_bang = False
         self.running = False
 
-        # make a default dict and populate with random
+        # make a default dict for the engine
         self.datadict = {'master_move_output': 0,
                          'move_rnn': 0,
                          'affect_rnn': 0,
@@ -36,7 +36,7 @@ class Scheduler:
         for key in self.datadict.keys():
             self.datadict[key] = rnd
 
-    async def net1(self, net):
+    async def nets(self, net):
         self.net = net
         self.net_name = self.netlist[net]
         while self.interrupt_bang:
@@ -74,7 +74,7 @@ class Scheduler:
         pass
 
     async def random_poetry(self):
-        # outputs a stream of random poetry as part of move juggling
+        # outputs a stream of random poetry
         while self.running:
             self.datadict['rnd_poetry'] = random()
             await trio.sleep(self.rhythm_rate)
@@ -101,16 +101,16 @@ class Scheduler:
             async with trio.open_nursery() as nursery:
                 # spawning all the nets
                 print("parent: spawning net1...")
-                nursery.start_soon(self.net1, 0)
+                nursery.start_soon(self.nets, 0)
 
                 print("parent: spawning net2...")
-                nursery.start_soon(self.net1, 1)
+                nursery.start_soon(self.nets, 1)
 
                 print("parent: spawning net3...")
-                nursery.start_soon(self.net1, 2)
+                nursery.start_soon(self.nets, 2)
 
                 print("parent: spawning net4...")
-                nursery.start_soon(self.net1, 3)
+                nursery.start_soon(self.nets, 3)
 
                 # spawning scheduling methods
                 print("parent: spawning master cog...")
@@ -131,14 +131,24 @@ class Scheduler:
     # user accessible methods
     # returns the live output from the class to user
     def queries(self):
-        # todo - need to implement the affect/ intensity RNN
-        return self.datadict.get('master_move_output')
+        # todo - need to implement the affect/ intensity RNN & output
+
+        return {'raw output': self.datadict.get('master_move_output'),
+                'intensity': 0,
+                'individual NN outs':
+                    {'move RNN': self.datadict.get('move_rnn'),
+                     'affect RNN': self.datadict.get('affect_rnn'),
+                         'move-affect_conv2': self.datadict.get('move-affect_conv2'),
+                         'affect-move_conv2': self.datadict.get('affect-move_conv2')
+                     }
+                }
 
     # live input of user-data into class (0.0-1.0)
     # called and scheduled by user class
     def put(self, user_data):
         self.datadict['user_in'] = user_data
 
+    # stop start methods
     def go(self):
         self.running = True
         trio.run(self.parent)
@@ -147,5 +157,5 @@ class Scheduler:
         self.running = False
 
 if __name__ == '__main__':
-    sched = Scheduler()
+    sched = AiDataEngine()
     sched.go()
