@@ -1,4 +1,4 @@
-import tensorflow_datasets as tfds
+# import tensorflow_datasets as tfds
 import tensorflow as tf
 from tensorflow.keras.layers import Layer, Dense, LayerNormalization, Embedding, Dropout
 from tensorflow.keras.models import Sequential, Model
@@ -7,7 +7,7 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import SparseCategoricalCrossentropy
 from tensorflow.keras.metrics import Mean, SparseCategoricalAccuracy
 
-from tqdm import tqdm
+# from tqdm import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
 
