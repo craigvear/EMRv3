@@ -67,11 +67,25 @@ class AiDataEngine:
         self.interrupt_bang = False
         print(" ###################   restarting ######################")
 
-    async def move_juggling(self):
+    async def thought_train(self):
         # spits out the motor out data
         # after juggling the
-        # inputs are: live audio, random poetry, move,
+        # activators are: live audio, random poetry, affect RNN
+        # data inputs are - all the move,
         pass
+
+    #     # when restarts after interrupt bang fill dict with rnd
+    #     self.dict_fill()
+    #     while self.interrupt_bang:
+    #         # if > 60 trigger interrupt bang
+    #         if self.user_data > 60:
+    #             self.interrupt_bang = False
+    #             sleep(0.1)
+    #             self.interrupt_bang = True
+    #
+    #         # if 30 <> 60 fill dict with random
+    #         elif 30 < self.user_data < 59:
+    #             self.dict_fill()
 
     async def random_poetry(self):
         # outputs a stream of random poetry
@@ -79,7 +93,7 @@ class AiDataEngine:
             self.datadict['rnd_poetry'] = random()
             await trio.sleep(self.rhythm_rate)
 
-#todo: smoothing and affcte
+#todo: smoothing and affcte?
     # async def affect(self):
     #     # when restarts after interrupt bang fill dict with rnd
     #     self.dict_fill()
@@ -94,7 +108,7 @@ class AiDataEngine:
     #         elif 30 < self.user_data < 59:
     #             self.dict_fill()
 
-    async def parent(self):
+    async def flywheel(self):
         print("parent: started!")
         while self.running:
             self.interrupt_bang = True
@@ -118,7 +132,7 @@ class AiDataEngine:
 
                 # spawning rhythm gen
                 print("parent: spawning rhythm generator...")
-                nursery.start_soon(self.move_juggling)
+                nursery.start_soon(self.thought_train)
 
                 # spawning poetry gen
                 print("parent: spawning rhythm generator live input...")
@@ -130,7 +144,7 @@ class AiDataEngine:
 
     # user accessible methods
     # returns the live output from the class to user
-    def queries(self):
+    def grab(self):
         # todo - need to implement the affect/ intensity RNN & output
 
         return {'raw output': self.datadict.get('master_move_output'),
@@ -151,11 +165,11 @@ class AiDataEngine:
     # stop start methods
     def go(self):
         self.running = True
-        trio.run(self.parent)
+        trio.run(self.flywheel)
 
     def quit(self):
         self.running = False
 
 if __name__ == '__main__':
-    sched = AiDataEngine()
-    sched.go()
+    engine = AiDataEngine()
+    engine.go()

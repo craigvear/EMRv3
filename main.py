@@ -8,7 +8,7 @@ engine = AiDataEngine()
 
 async def child1():
     for i in range(100):
-        result = engine.queries()
+        result = engine.grab()
         engine.put(result)
         print(result)
         sleep(0.1)
