@@ -12,8 +12,16 @@ class Scheduler:
 
         # make a default dict and populate with random
         self.datadict = {'master_move_output': 0,
-                         'move_in': 0,
-                         'user_input': 0}
+                         'move_rnn': 0,
+                         'affect_rnn': 0,
+                         'move-affect_conv2': 0,
+                         'affect-move_conv2': 0,
+                         'user_in': 0,
+                         'rnd_poetry': 0,
+                         'rhythm_rnn': 0}
+
+        # fill with random values
+        self.dict_fill()
 
         # todo: build models and put into list (replace strings with models)
         self.netlist = ['move_rnn',
@@ -21,23 +29,70 @@ class Scheduler:
                         'move-affect_conv2',
                         'affect-move_conv2']
 
-    async def net1(self, iden):
-        iden = self.netlist[iden]
+        self.rhythm_rate = 0.1
+
+    def dict_fill(self):
+        rnd = random()
+        for key in self.datadict.keys():
+            self.datadict[key] = rnd
+
+    async def net1(self, net):
+        self.net = net
+        self.net_name = self.netlist[net]
         while self.interrupt_bang:
-            localvalue = self.datadict.get('move_in')
+            # get the current value of the net ready for input for prediction
+            localval = self.datadict.get(self.net_name)
+
+            # will replace this with predictions and input with localval
             rnd = random() * self.global_speed
-            print(f"  {iden} in: {localvalue} predicted {rnd}")
-            self.datadict.update({'move_in': rnd})
+            print(f"  {self.net_name} in: {localval} predicted {rnd}")
+
+            # save to data dict and master move out if
+            self.datadict[self.net_name] = rnd
+            self.datadict['master_move_output'] = rnd
+
+            if self.net == 1:
+                self.datadict['affect-move_conv2'] = rnd
+
             await trio.sleep(rnd)
-            print(f"  {iden}: looping!")
+            print(f"  {net}: looping!")
 
     # controls master scheduling
-    async def interrupt_listener(self):
+    async def master_clock(self):
         loop_dur = randrange(6, 26) * self.global_speed
         print(f"                 interrupt_listener: started! sleeping now for {loop_dur}...")
         await trio.sleep(loop_dur)
+
+        # sends a bang that retsrats the process ~ refilling the datadict
         self.interrupt_bang = False
         print(" ###################   restarting ######################")
+
+    async def move_juggling(self):
+        # spits out the motor out data
+        # after juggling the
+        # inputs are: live audio, random poetry, move,
+        pass
+
+    async def random_poetry(self):
+        # outputs a stream of random poetry as part of move juggling
+        while self.running:
+            self.datadict['rnd_poetry'] = random()
+            await trio.sleep(self.rhythm_rate)
+
+#todo: smoothing and affcte
+    # async def affect(self):
+    #     # when restarts after interrupt bang fill dict with rnd
+    #     self.dict_fill()
+    #     while self.interrupt_bang:
+    #         # if > 60 trigger interrupt bang
+    #         if self.user_data > 60:
+    #             self.interrupt_bang = False
+    #             sleep(0.1)
+    #             self.interrupt_bang = True
+    #
+    #         # if 30 <> 60 fill dict with random
+    #         elif 30 < self.user_data < 59:
+    #             self.dict_fill()
 
     async def parent(self):
         print("parent: started!")
@@ -59,22 +114,30 @@ class Scheduler:
 
                 # spawning scheduling methods
                 print("parent: spawning master cog...")
-                nursery.start_soon(self.interrupt_listener)
+                nursery.start_soon(self.master_clock)
+
+                # spawning rhythm gen
+                print("parent: spawning rhythm generator...")
+                nursery.start_soon(self.move_juggling)
+
+                # spawning poetry gen
+                print("parent: spawning rhythm generator live input...")
+                nursery.start_soon(self.random_poetry)
+
+                # # spawning affect
+                # print("parent: spawning affect...")
+                # nursery.start_soon(self.affect)
 
     # user accessible methods
     # returns the live output from the class to user
     def queries(self):
+        # todo - need to implement the affect/ intensity RNN
         return self.datadict.get('master_move_output')
 
-    # live input of user-data into class (0-1)
+    # live input of user-data into class (0.0-1.0)
     # called and scheduled by user class
     def put(self, user_data):
-        self.user_data = user_data
-        # if < 30 do nothing
-        # if 30 <> 60 fill dict with random
-        # if > 60 trigger intrrupt bang
-
-        self.datadict.update({'user_input': self.user_data})
+        self.datadict['user_in'] = user_data
 
     def go(self):
         self.running = True
