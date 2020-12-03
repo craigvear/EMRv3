@@ -1,5 +1,13 @@
+# --------------------------------------------------
+#
+# Embodied AI Engine Prototype v0.9
+# 2020/12/03
+#
+# © Craig Vear 2020
+# cvear@dmu.ac.uk
+#
+# --------------------------------------------------
 
-import sys
 import trio
 from random import randrange, random
 from time import sleep, time
@@ -33,10 +41,17 @@ class AiDataEngine:
                         'affect-move_conv2']
 
         self.rhythm_rate = 0.1
+        self.affect_listen = 0
+
+    # --------------------------------------------------
+    #
+    # prediction and rnd num gen zone
+    #
+    # --------------------------------------------------
 
     def dict_fill(self):
-        rnd = random()
         for key in self.datadict.keys():
+            rnd = random()
             self.datadict[key] = rnd
 
     async def nets(self, net):
@@ -58,7 +73,19 @@ class AiDataEngine:
                 self.datadict['affect-move_conv2'] = rnd
 
             await trio.sleep(rnd)
-            print(f"  {net}: looping!")
+            # print(f"  {net}: looping!")
+
+    async def random_poetry(self):
+        # outputs a stream of random poetry
+        while self.interrupt_bang:
+            self.datadict['rnd_poetry'] = random()
+            await trio.sleep(self.rhythm_rate)
+
+    # --------------------------------------------------
+    #
+    # affect and streaming methods
+    #
+    # --------------------------------------------------
 
     # controls master scheduling
     async def master_clock(self):
@@ -89,6 +116,7 @@ class AiDataEngine:
     # define which feed to listen to, and duration
     # and a course of affect response
     async def affect(self):
+        self.routing = True
         while self.interrupt_bang:
             rnd_stream = randrange(3)
             if rnd_stream == 0:
@@ -102,18 +130,17 @@ class AiDataEngine:
             end_time = time() + (randrange(1000, 4000) / 1000)
             while time() < end_time:
                 self.datadict['master_move_output'] = self.affect_listen
-
+                print(self.datadict['master_move_output'])
                 # hold until end of loop, major affect_bang, or medium routing change
                 if not self.interrupt_bang or not self.routing:
                     break
-                else:
-                    await trio.sleep(self.rhythm_rate)
+                await trio.sleep(self.rhythm_rate)
 
-    async def random_poetry(self):
-        # outputs a stream of random poetry
-        while self.interrupt_bang:
-            self.datadict['rnd_poetry'] = random()
-            await trio.sleep(self.rhythm_rate)
+    # --------------------------------------------------
+    #
+    # parent threading solution
+    #
+    # --------------------------------------------------
 
     async def flywheel(self):
         print("parent: started!")
@@ -149,8 +176,14 @@ class AiDataEngine:
                 print("parent: spawning rhythm generator live input...")
                 nursery.start_soon(self.random_poetry)
 
+
+    # --------------------------------------------------
+    #
     # user accessible methods
     # returns the live output from the class to user
+    #
+    # --------------------------------------------------
+
     def grab(self):
         # todo - need to implement the affect/ intensity RNN & output
 
@@ -182,6 +215,7 @@ class AiDataEngine:
 
     def quit(self):
         self.running = False
+
 
 if __name__ == '__main__':
     engine = AiDataEngine()
