@@ -10,7 +10,9 @@
 
 import trio
 from random import randrange, random
-from time import sleep, time
+from time import time
+from tensorflow.keras.models import load_model
+import numpy as np
 
 class AiDataEngine:
     def __init__(self, speed=1):
@@ -34,11 +36,22 @@ class AiDataEngine:
         self.dict_fill()
         print(self.datadict)
 
+        # load models
+        self.move_rnn = load_model('training/models/EMR-3_RNN_skeleton_data.nose.x.h5')
+        self.affect_rnn = load_model('training/models/EMR-3_RNN_bitalino.h5')
+        self.move_affect_conv2 = load_model('training/models/EMR-3_conv2D_move-affect.h5')
+        self.affect_move_conv2 = load_model('training/models/EMR-3_conv2D_affect-move.h5')
+
         # todo: build models and put into list (replace strings with models)
-        self.netlist = ['move_rnn',
+        self.netlist = [self.move_rnn,
+                        self.affect_rnn,
+                        self.move_affect_conv2,
+                        self.affect_move_conv2]
+
+        self.netnames = ['move_rnn',
                         'affect_rnn',
-                        'move-affect_conv2',
-                        'affect-move_conv2']
+                        'move_affect_conv2',
+                        'affect_move_conv2']
 
         self.rhythm_rate = 0.1
         self.affect_listen = 0
@@ -54,25 +67,30 @@ class AiDataEngine:
             rnd = random()
             self.datadict[key] = rnd
 
-    async def nets(self, net):
+    async def nets(self, net, in_dict):
         self.net = net
-        self.net_name = self.netlist[net]
+        self.in_dict = in_dict
+        self.net_model = self.netlist[net]
+        self.net_name = self.netnames[net]
+
         while self.interrupt_bang:
             # get the current value of the net ready for input for prediction
             localval = self.datadict.get(self.net_name)
+            print('llllllllllllllll', localval)
 
-            # will replace this with predictions and input with localval
-            rnd = random() * self.global_speed
-            print(f"  {self.net_name} in: {localval} predicted {rnd}")
+            # predictions and input with localval
+            localval = np.reshape(localval, (1, 1, 1))
+            pred = self.net_model.predict(localval)
+            print(f"  {self.net_name} in: {localval} predicted {pred}")
 
             # save to data dict and master move out if
-            self.datadict[self.net_name] = rnd
-            self.datadict['master_move_output'] = rnd
+            self.datadict[self.net_name] = pred[0][0]
+            self.datadict['master_move_output'] = pred[0][0]
 
             if self.net == 1:
-                self.datadict['affect-move_conv2'] = rnd
+                self.datadict['affect-move_conv2'] = pred
 
-            await trio.sleep(rnd)
+            await trio.sleep(pred)
             # print(f"  {net}: looping!")
 
     async def random_poetry(self):
@@ -149,16 +167,16 @@ class AiDataEngine:
             async with trio.open_nursery() as nursery:
                 # spawning all the nets
                 print("parent: spawning net1...")
-                nursery.start_soon(self.nets, 0)
+                nursery.start_soon(self.nets, 0, 0)
 
                 print("parent: spawning net2...")
-                nursery.start_soon(self.nets, 1)
+                nursery.start_soon(self.nets, 1, 1)
 
                 print("parent: spawning net3...")
-                nursery.start_soon(self.nets, 2)
+                nursery.start_soon(self.nets, 2, 2)
 
                 print("parent: spawning net4...")
-                nursery.start_soon(self.nets, 3)
+                nursery.start_soon(self.nets, 3, 1)
 
                 # spawning scheduling methods
                 print("parent: spawning master cog...")
