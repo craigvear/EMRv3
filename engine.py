@@ -22,11 +22,11 @@ class AiDataEngine:
         self.routing = False
 
         # make a default dict for the engine
-        self.datadict = {'master_move_output': 0,
-                         'move_rnn': 0,
+        self.datadict = {'move_rnn': 0,
                          'affect_rnn': 0,
                          'move-affect_conv2': 0,
                          'affect-move_conv2': 0,
+                         'master_move_output': 0,
                          'user_in': 0,
                          'rnd_poetry': 0,
                          'rhythm_rnn': 0,
@@ -43,15 +43,10 @@ class AiDataEngine:
         self.affect_move_conv2 = load_model('training/models/EMR-3_conv2D_affect-move.h5')
 
         # todo: build models and put into list (replace strings with models)
-        self.netlist = [self.move_rnn,
-                        self.affect_rnn,
-                        self.move_affect_conv2,
-                        self.affect_move_conv2]
-
         self.netnames = ['move_rnn',
-                        'affect_rnn',
-                        'move_affect_conv2',
-                        'affect_move_conv2']
+                         'affect_rnn',
+                         'move_affect_conv2',
+                         'affect_move_conv2']
 
         self.rhythm_rate = 0.1
         self.affect_listen = 0
@@ -67,30 +62,40 @@ class AiDataEngine:
             rnd = random()
             self.datadict[key] = rnd
 
+    def prediction(self, localval):
+        self.localval = np.reshape(localval, (1, 1, 1))
+        if self.net_name == 0:
+            pred = self.move_rnn.predict(self.localval)
+        elif self.net_name == 1:
+            pred = self.affect_rnn.predict(self.localval)
+        elif self.net_name == 2:
+            pred = self.move_affect_conv2.predict(self.localval)
+        else:
+            pred = self.affect_move_conv2.predict(self.localval)
+        return pred[0][0]
+
     async def nets(self, net, in_dict):
         self.net = net
-        self.in_dict = in_dict
-        self.net_model = self.netlist[net]
+        self.in_dict = self.netnames[in_dict]
         self.net_name = self.netnames[net]
 
         while self.interrupt_bang:
             # get the current value of the net ready for input for prediction
-            localval = self.datadict.get(self.net_name)
-            print('llllllllllllllll', localval)
+            localval = self.datadict.get(self.in_dict)
+            print('llllllllllllllll     ', localval)
 
             # predictions and input with localval
-            localval = np.reshape(localval, (1, 1, 1))
-            pred = self.net_model.predict(localval)
+            pred = self.prediction(localval)
             print(f"  {self.net_name} in: {localval} predicted {pred}")
 
             # save to data dict and master move out if
-            self.datadict[self.net_name] = pred[0][0]
-            self.datadict['master_move_output'] = pred[0][0]
+            self.datadict[self.net_name] = pred
+            self.datadict['master_move_output'] = pred
 
             if self.net == 1:
                 self.datadict['affect-move_conv2'] = pred
 
-            await trio.sleep(pred)
+            await trio.sleep(self.rhythm_rate)
             # print(f"  {net}: looping!")
 
     async def random_poetry(self):
