@@ -14,6 +14,11 @@ from time import time
 from tensorflow.keras.models import load_model
 import numpy as np
 
+# --------------------------------------------------
+#
+# instantiate 1 object for each neural net
+#
+# --------------------------------------------------
 
 class Nets:
     def __init__(self):
@@ -29,8 +34,15 @@ class Nets:
     def affect_move_conv2(self):
         self.affect_move_conv2 = load_model('training/models/EMR-3_conv2D_affect-move.h5')
 
+    # make a prediction
     def predict(self, model, inval):
         return model.predict(inval)
+
+# --------------------------------------------------
+#
+# controls all thought-trains and affect responses
+#
+# --------------------------------------------------
 
 class AiDataEngine:
     def __init__(self, speed=1):
