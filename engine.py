@@ -2,13 +2,14 @@
 import sys
 import trio
 from random import randrange, random
-from time import sleep
+from time import sleep, time
 
 class AiDataEngine:
     def __init__(self, speed=1):
         self.global_speed = speed
         self.interrupt_bang = False
         self.running = False
+        self.routing = False
 
         # make a default dict for the engine
         self.datadict = {'master_move_output': 0,
@@ -18,7 +19,8 @@ class AiDataEngine:
                          'affect-move_conv2': 0,
                          'user_in': 0,
                          'rnd_poetry': 0,
-                         'rhythm_rnn': 0}
+                         'rhythm_rnn': 0,
+                         'affect_net': 0}
 
         # fill with random values
         self.dict_fill()
@@ -67,46 +69,51 @@ class AiDataEngine:
         self.interrupt_bang = False
         print(" ###################   restarting ######################")
 
-    async def thought_train(self):
-        # spits out the motor out data
-        # after juggling the
-        # activators are: live audio, random poetry, affect RNN
-        # data inputs are - all the move,
-        pass
+    async def streamer(self):
+        # responds to affect streamer
 
-    #     # when restarts after interrupt bang fill dict with rnd
-    #     self.dict_fill()
-    #     while self.interrupt_bang:
-    #         # if > 60 trigger interrupt bang
-    #         if self.user_data > 60:
-    #             self.interrupt_bang = False
-    #             sleep(0.1)
-    #             self.interrupt_bang = True
-    #
-    #         # if 30 <> 60 fill dict with random
-    #         elif 30 < self.user_data < 59:
-    #             self.dict_fill()
+        # when restarts after interrupt bang fill dict with rnd
+        self.dict_fill()
+        while self.interrupt_bang:
+            # if > 60 trigger interrupt bang, break and restart all processes
+            if self.affect_listen > 60:
+                self.interrupt_bang = False
+            # if 30 <> 60 fill dict with random, all processes norm
+            elif 30 < self.affect_listen < 59:
+                self.dict_fill()
+                self.routing = False
+            # else slow the loop down
+            else:
+                await trio.sleep(self.rhythm_rate)
+
+    # define which feed to listen to, and duration
+    # and a course of affect response
+    async def affect(self):
+        while self.interrupt_bang:
+            rnd_stream = randrange(3)
+            if rnd_stream == 0:
+                self.affect_listen = self.datadict['user_in']
+            elif rnd_stream == 1:
+                self.affect_listen = self.datadict['rnd_poetry']
+            else:
+                self.affect_listen = self.datadict['affect_net']
+
+            # hold this stream for 1-4 secs, unless interrupt bang
+            end_time = time() + (randrange(1000, 4000) / 1000)
+            while time() < end_time:
+                self.datadict['master_move_output'] = self.affect_listen
+
+                # hold until end of loop, major affect_bang, or medium routing change
+                if not self.interrupt_bang or not self.routing:
+                    break
+                else:
+                    await trio.sleep(self.rhythm_rate)
 
     async def random_poetry(self):
         # outputs a stream of random poetry
-        while self.running:
+        while self.interrupt_bang:
             self.datadict['rnd_poetry'] = random()
             await trio.sleep(self.rhythm_rate)
-
-#todo: smoothing and affcte?
-    # async def affect(self):
-    #     # when restarts after interrupt bang fill dict with rnd
-    #     self.dict_fill()
-    #     while self.interrupt_bang:
-    #         # if > 60 trigger interrupt bang
-    #         if self.user_data > 60:
-    #             self.interrupt_bang = False
-    #             sleep(0.1)
-    #             self.interrupt_bang = True
-    #
-    #         # if 30 <> 60 fill dict with random
-    #         elif 30 < self.user_data < 59:
-    #             self.dict_fill()
 
     async def flywheel(self):
         print("parent: started!")
@@ -132,15 +139,15 @@ class AiDataEngine:
 
                 # spawning rhythm gen
                 print("parent: spawning rhythm generator...")
-                nursery.start_soon(self.thought_train)
+                nursery.start_soon(self.streamer)
+
+                # spawning affect listener
+                print("parent: spawning affect listener...")
+                nursery.start_soon(self.affect)
 
                 # spawning poetry gen
                 print("parent: spawning rhythm generator live input...")
                 nursery.start_soon(self.random_poetry)
-
-                # # spawning affect
-                # print("parent: spawning affect...")
-                # nursery.start_soon(self.affect)
 
     # user accessible methods
     # returns the live output from the class to user
