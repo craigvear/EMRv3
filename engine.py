@@ -24,6 +24,7 @@ class AiDataEngine:
 
         # fill with random values
         self.dict_fill()
+        print(self.datadict)
 
         # todo: build models and put into list (replace strings with models)
         self.netlist = ['move_rnn',
@@ -71,12 +72,11 @@ class AiDataEngine:
 
     async def streamer(self):
         # responds to affect streamer
-
         # when restarts after interrupt bang fill dict with rnd
-        self.dict_fill()
         while self.interrupt_bang:
             # if > 60 trigger interrupt bang, break and restart all processes
             if self.affect_listen > 60:
+                self.dict_fill()
                 self.interrupt_bang = False
             # if 30 <> 60 fill dict with random, all processes norm
             elif 30 < self.affect_listen < 59:
@@ -154,7 +154,7 @@ class AiDataEngine:
     def grab(self):
         # todo - need to implement the affect/ intensity RNN & output
 
-        return {'raw output': self.datadict.get('master_move_output'),
+        return {'e-AI output': self.datadict.get('master_move_output'),
                 'intensity': 0,
                 'individual NN outs':
                     {'move RNN': self.datadict.get('move_rnn'),
@@ -168,6 +168,12 @@ class AiDataEngine:
     # called and scheduled by user class
     def put(self, user_data):
         self.datadict['user_in'] = user_data
+
+    def speed(self, user_speed):
+        self.global_speed = user_speed
+
+    def tempo(self, user_tempo):
+        self.rhythm_rate = user_tempo
 
     # stop start methods
     def go(self):
