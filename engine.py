@@ -14,6 +14,24 @@ from time import time
 from tensorflow.keras.models import load_model
 import numpy as np
 
+
+class Nets:
+    def __init__(self):
+        print('Net initialization')
+
+    # load models
+    def move_rnn(self):
+        self.move_rnn = load_model('training/models/EMR-3_RNN_skeleton_data.nose.x.h5')
+    def affect_rnn(self):
+        self.affect_rnn = load_model('training/models/EMR-3_RNN_bitalino.h5')
+    def move_affect_conv2(self):
+        self.move_affect_conv2 = load_model('training/models/EMR-3_conv2D_move-affect.h5')
+    def affect_move_conv2(self):
+        self.affect_move_conv2 = load_model('training/models/EMR-3_conv2D_affect-move.h5')
+
+    def predict(self, model, inval):
+        return model.predict(inval)
+
 class AiDataEngine:
     def __init__(self, speed=1):
         self.global_speed = speed
@@ -24,8 +42,8 @@ class AiDataEngine:
         # make a default dict for the engine
         self.datadict = {'move_rnn': 0,
                          'affect_rnn': 0,
-                         'move-affect_conv2': 0,
-                         'affect-move_conv2': 0,
+                         'move_affect_conv2': 0,
+                         'affect_move_conv2': 0,
                          'master_move_output': 0,
                          'user_in': 0,
                          'rnd_poetry': 0,
@@ -36,20 +54,31 @@ class AiDataEngine:
         self.dict_fill()
         print(self.datadict)
 
-        # load models
-        self.move_rnn = load_model('training/models/EMR-3_RNN_skeleton_data.nose.x.h5')
-        self.affect_rnn = load_model('training/models/EMR-3_RNN_bitalino.h5')
-        self.move_affect_conv2 = load_model('training/models/EMR-3_conv2D_move-affect.h5')
-        self.affect_move_conv2 = load_model('training/models/EMR-3_conv2D_affect-move.h5')
+        # instantiate nets as objects
+        self.move_rnn = Nets().move_rnn
+        self.affect_rnn = Nets().affect_rnn
+        self.move_affect_conv2 = Nets().move_affect_conv2
+        self.affect_move_conv2 = Nets().affect_move_conv2
 
-        # todo: build models and put into list (replace strings with models)
+        # set out variables
         self.netnames = ['move_rnn',
                          'affect_rnn',
                          'move_affect_conv2',
                          'affect_move_conv2']
 
+        self.netlist = [self.move_rnn,
+                        self.affect_rnn,
+                        self.move_affect_conv2,
+                        self.affect_move_conv2]
+
         self.rhythm_rate = 0.1
         self.affect_listen = 0
+
+    # fills the dictionary with rnd values for each key
+    def dict_fill(self):
+        for key in self.datadict.keys():
+            rnd = random()
+            self.datadict[key] = rnd
 
     # --------------------------------------------------
     #
@@ -57,46 +86,43 @@ class AiDataEngine:
     #
     # --------------------------------------------------
 
-    def dict_fill(self):
-        for key in self.datadict.keys():
-            rnd = random()
-            self.datadict[key] = rnd
-
-    def prediction(self, localval):
-        self.localval = np.reshape(localval, (1, 1, 1))
+    # makes a prediction for a given net and defined input var
+    def prediction(self, net, in_val):
+        print(net, in_val)
+        self.pred_in_val = np.reshape(in_val, (1, 1, 1))
+        print(self.localval)
         if self.net_name == 0:
-            pred = self.move_rnn.predict(self.localval)
+            pred = self.move_rnn.predict(net, self.pred_in_val)
         elif self.net_name == 1:
-            pred = self.affect_rnn.predict(self.localval)
+            pred = self.affect_rnn.predict(net, self.pred_in_val)
         elif self.net_name == 2:
-            pred = self.move_affect_conv2.predict(self.localval)
+            pred = self.move_affect_conv2.predict(net, self.pred_in_val)
         else:
-            pred = self.affect_move_conv2.predict(self.localval)
+            pred = self.affect_move_conv2.predict(net, self.pred_in_val)
+        # todo returning only 1st position. 4 could be used in a randomiser
         return pred[0][0]
 
+    # control method for all net predictions
     async def nets(self, net, in_dict):
-        self.net = net
+        self.NN = self.netlist[net]
         self.in_dict = self.netnames[in_dict]
         self.net_name = self.netnames[net]
+        print(id, self.NN, self.in_dict, self.net_name)
 
         while self.interrupt_bang:
             # get the current value of the net ready for input for prediction
-            localval = self.datadict.get(self.in_dict)
-            print('llllllllllllllll     ', localval)
+            self.localval = self.datadict.get(self.in_dict)
 
             # predictions and input with localval
-            pred = self.prediction(localval)
-            print(f"  {self.net_name} in: {localval} predicted {pred}")
+            pred = self.prediction(self.NN, self.localval)
+            print(f"  {self.net_name} in: {self.localval} predicted {pred}")
 
             # save to data dict and master move out if
             self.datadict[self.net_name] = pred
             self.datadict['master_move_output'] = pred
 
-            if self.net == 1:
-                self.datadict['affect-move_conv2'] = pred
-
             await trio.sleep(self.rhythm_rate)
-            # print(f"  {net}: looping!")
+            print(f"  {net}: looping!")
 
     async def random_poetry(self):
         # outputs a stream of random poetry
@@ -153,7 +179,7 @@ class AiDataEngine:
             end_time = time() + (randrange(1000, 4000) / 1000)
             while time() < end_time:
                 self.datadict['master_move_output'] = self.affect_listen
-                print(self.datadict['master_move_output'])
+                # print(self.datadict['master_move_output'])
                 # hold until end of loop, major affect_bang, or medium routing change
                 if not self.interrupt_bang or not self.routing:
                     break
@@ -199,24 +225,21 @@ class AiDataEngine:
                 print("parent: spawning rhythm generator live input...")
                 nursery.start_soon(self.random_poetry)
 
-
     # --------------------------------------------------
     #
     # user accessible methods
-    # returns the live output from the class to user
     #
     # --------------------------------------------------
 
+    # returns the live output from the class to user
     def grab(self):
-        # todo - need to implement the affect/ intensity RNN & output
-
         return {'e-AI output': self.datadict.get('master_move_output'),
                 'intensity': 0,
                 'individual NN outs':
                     {'move RNN': self.datadict.get('move_rnn'),
                      'affect RNN': self.datadict.get('affect_rnn'),
-                         'move-affect_conv2': self.datadict.get('move-affect_conv2'),
-                         'affect-move_conv2': self.datadict.get('affect-move_conv2')
+                         'move_affect_conv2': self.datadict.get('move_affect_conv2'),
+                         'affect_move_conv2': self.datadict.get('affect_move_conv2')
                      }
                 }
 
@@ -225,9 +248,11 @@ class AiDataEngine:
     def put(self, user_data):
         self.datadict['user_in'] = user_data
 
+    # user change the overall speed of the engine
     def speed(self, user_speed):
         self.global_speed = user_speed
 
+    # user change tempo of outputs and parsing
     def tempo(self, user_tempo):
         self.rhythm_rate = user_tempo
 
