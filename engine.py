@@ -16,27 +16,42 @@ import numpy as np
 
 # --------------------------------------------------
 #
-# instantiate 1 object for each neural net
+# instantiate an object for each neural net
 #
 # --------------------------------------------------
 
-class Nets:
+class MoveRNN:
     def __init__(self):
-        print('Net initialization')
-
-    # load models
-    def move_rnn(self):
+        print('MoveRNN initialization')
         self.move_rnn = load_model('training/models/EMR-3_RNN_skeleton_data.nose.x.h5')
-    def affect_rnn(self):
+
+    def predict(self, in_val):
+        return self.move_rnn.predict(in_val)
+
+class AffectRNN:
+    def __init__(self):
+        print('AffectRNN initialization')
         self.affect_rnn = load_model('training/models/EMR-3_RNN_bitalino.h5')
-    def move_affect_conv2(self):
+
+    def predict(self, in_val):
+        return self.affect_rnn.predict(in_val)
+
+class MoveAffectCONV2:
+    def __init__(self):
+        print('MoveAffectCONV2 initialization')
         self.move_affect_conv2 = load_model('training/models/EMR-3_conv2D_move-affect.h5')
-    def affect_move_conv2(self):
+
+    def predict(self, in_val):
+        return self.move_affect_conv2.predict(in_val)
+
+class AffectMoveCONV2:
+    def __init__(self):
+        print('AffectMoveCONV2 initialization')
         self.affect_move_conv2 = load_model('training/models/EMR-3_conv2D_affect-move.h5')
 
-    # make a prediction
-    def predict(self, model, inval):
-        return model.predict(inval)
+    def predict(self, in_val):
+        return self.affect_move_conv2.predict(in_val)
+
 
 # --------------------------------------------------
 #
@@ -66,11 +81,11 @@ class AiDataEngine:
         self.dict_fill()
         print(self.datadict)
 
-        # instantiate nets as objects
-        self.move_rnn = Nets().move_rnn
-        self.affect_rnn = Nets().affect_rnn
-        self.move_affect_conv2 = Nets().move_affect_conv2
-        self.affect_move_conv2 = Nets().affect_move_conv2
+        # instantiate nets as objects and make  models
+        self.move_rnn = MoveRNN()
+        self.affect_rnn = AffectRNN()
+        self.move_affect_conv2 = MoveAffectCONV2()
+        self.affect_move_conv2 = AffectMoveCONV2()
 
         # set out variables
         self.netnames = ['move_rnn',
@@ -104,37 +119,37 @@ class AiDataEngine:
         self.pred_in_val = np.reshape(in_val, (1, 1, 1))
         print(self.localval)
         if self.net_name == 0:
-            pred = self.move_rnn.predict(net, self.pred_in_val)
+            pred = self.move_rnn.predict(self.pred_in_val)
         elif self.net_name == 1:
-            pred = self.affect_rnn.predict(net, self.pred_in_val)
+            pred = self.affect_rnn.predict(self.pred_in_val)
         elif self.net_name == 2:
-            pred = self.move_affect_conv2.predict(net, self.pred_in_val)
+            pred = self.move_affect_conv2.predict(self.pred_in_val)
         else:
-            pred = self.affect_move_conv2.predict(net, self.pred_in_val)
+            pred = self.affect_move_conv2.predict(self.pred_in_val)
         # todo returning only 1st position. 4 could be used in a randomiser
         return pred[0][0]
 
     # control method for all net predictions
     async def nets(self, net, in_dict):
-        self.NN = self.netlist[net]
+        self.net = net
         self.in_dict = self.netnames[in_dict]
         self.net_name = self.netnames[net]
-        print(id, self.NN, self.in_dict, self.net_name)
+        print(self.in_dict, self.net_name)
 
         while self.interrupt_bang:
             # get the current value of the net ready for input for prediction
             self.localval = self.datadict.get(self.in_dict)
 
             # predictions and input with localval
-            pred = self.prediction(self.NN, self.localval)
-            print(f"  {self.net_name} in: {self.localval} predicted {pred}")
+            self.pred = self.prediction(self.net, self.localval)
+            print(f"  {self.net_name} in: {self.localval} predicted {self.pred}")
 
             # save to data dict and master move out if
-            self.datadict[self.net_name] = pred
-            self.datadict['master_move_output'] = pred
+            self.datadict[self.net_name] = self.pred
+            self.datadict['master_move_output'] = self.pred
 
             await trio.sleep(self.rhythm_rate)
-            print(f"  {net}: looping!")
+            print(f"  {self.net}: looping!")
 
     async def random_poetry(self):
         # outputs a stream of random poetry
