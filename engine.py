@@ -16,6 +16,36 @@ import numpy as np
 
 # --------------------------------------------------
 #
+# instantiate an object for all variables
+#
+# --------------------------------------------------
+
+class Config:
+    def __init__(self):
+        # self.interrupt_bang = False
+        # self.running = False
+        # self.routing = False
+
+        # make a default dict for the engine
+        self.datadict = {'move_rnn': 0,
+                         'affect_rnn': 0,
+                         'move_affect_conv2': 0,
+                         'affect_move_conv2': 0,
+                         'master_move_output': 0,
+                         'user_in': 0,
+                         'rnd_poetry': 0,
+                         'rhythm_rnn': 0,
+                         'affect_net': 0}
+
+        # set out variables
+        self.netnames = ['move_rnn',
+                         'affect_rnn',
+                         'move_affect_conv2',
+                         'affect_move_conv2']
+
+
+# --------------------------------------------------
+#
 # instantiate an object for each neural net
 #
 # --------------------------------------------------
@@ -62,50 +92,52 @@ class AffectMoveCONV2:
 class AiDataEngine:
     def __init__(self, speed=1):
         self.global_speed = speed
+        self.config = Config()
+
         self.interrupt_bang = False
         self.running = False
         self.routing = False
-
-        # make a default dict for the engine
-        self.datadict = {'move_rnn': 0,
-                         'affect_rnn': 0,
-                         'move_affect_conv2': 0,
-                         'affect_move_conv2': 0,
-                         'master_move_output': 0,
-                         'user_in': 0,
-                         'rnd_poetry': 0,
-                         'rhythm_rnn': 0,
-                         'affect_net': 0}
-
+        #
+        # # make a default dict for the engine
+        # self.datadict = {'move_rnn': 0,
+        #                  'affect_rnn': 0,
+        #                  'move_affect_conv2': 0,
+        #                  'affect_move_conv2': 0,
+        #                  'master_move_output': 0,
+        #                  'user_in': 0,
+        #                  'rnd_poetry': 0,
+        #                  'rhythm_rnn': 0,
+        #                  'affect_net': 0}
+        #
         # fill with random values
         self.dict_fill()
-        print(self.datadict)
+        print(self.config.datadict)
 
         # instantiate nets as objects and make  models
         self.move_rnn = MoveRNN()
         self.affect_rnn = AffectRNN()
         self.move_affect_conv2 = MoveAffectCONV2()
         self.affect_move_conv2 = AffectMoveCONV2()
-
-        # set out variables
-        self.netnames = ['move_rnn',
-                         'affect_rnn',
-                         'move_affect_conv2',
-                         'affect_move_conv2']
-
-        self.netlist = [self.move_rnn,
-                        self.affect_rnn,
-                        self.move_affect_conv2,
-                        self.affect_move_conv2]
-
+        #
+        # # set out variables
+        # self.netnames = ['move_rnn',
+        #                  'affect_rnn',
+        #                  'move_affect_conv2',
+        #                  'affect_move_conv2']
+        #
+        # self.netlist = [self.move_rnn,
+        #                 self.affect_rnn,
+        #                 self.move_affect_conv2,
+        #                 self.affect_move_conv2]
+        #
         self.rhythm_rate = 0.1
         self.affect_listen = 0
 
     # fills the dictionary with rnd values for each key
     def dict_fill(self):
-        for key in self.datadict.keys():
+        for key in self.config.datadict.keys():
             rnd = random()
-            self.datadict[key] = rnd
+            self.config.datadict[key] = rnd
 
     # --------------------------------------------------
     #
@@ -132,21 +164,21 @@ class AiDataEngine:
     # control method for all net predictions
     async def nets(self, net, in_dict):
         self.net = net
-        self.in_dict = self.netnames[in_dict]
-        self.net_name = self.netnames[net]
+        self.in_dict = self.config.netnames[in_dict]
+        self.net_name = self.config.netnames[net]
         print(self.in_dict, self.net_name)
 
         while self.interrupt_bang:
             # get the current value of the net ready for input for prediction
-            self.localval = self.datadict.get(self.in_dict)
+            self.localval = self.config.datadict.get(self.in_dict)
 
             # predictions and input with localval
             self.pred = self.prediction(self.net, self.localval)
             print(f"  {self.net_name} in: {self.localval} predicted {self.pred}")
 
             # save to data dict and master move out if
-            self.datadict[self.net_name] = self.pred
-            self.datadict['master_move_output'] = self.pred
+            self.config.datadict[self.net_name] = self.pred
+            self.config.datadict['master_move_output'] = self.pred
 
             await trio.sleep(self.rhythm_rate)
             print(f"  {self.net}: looping!")
@@ -154,7 +186,7 @@ class AiDataEngine:
     async def random_poetry(self):
         # outputs a stream of random poetry
         while self.interrupt_bang:
-            self.datadict['rnd_poetry'] = random()
+            self.config.datadict['rnd_poetry'] = random()
             await trio.sleep(self.rhythm_rate)
 
     # --------------------------------------------------
@@ -196,16 +228,16 @@ class AiDataEngine:
         while self.interrupt_bang:
             rnd_stream = randrange(3)
             if rnd_stream == 0:
-                self.affect_listen = self.datadict['user_in']
+                self.affect_listen = self.config.datadict['user_in']
             elif rnd_stream == 1:
-                self.affect_listen = self.datadict['rnd_poetry']
+                self.affect_listen = self.config.datadict['rnd_poetry']
             else:
-                self.affect_listen = self.datadict['affect_net']
+                self.affect_listen = self.config.datadict['affect_net']
 
             # hold this stream for 1-4 secs, unless interrupt bang
             end_time = time() + (randrange(1000, 4000) / 1000)
             while time() < end_time:
-                self.datadict['master_move_output'] = self.affect_listen
+                self.config.datadict['master_move_output'] = self.affect_listen
                 # print(self.datadict['master_move_output'])
                 # hold until end of loop, major affect_bang, or medium routing change
                 if not self.interrupt_bang or not self.routing:
@@ -260,20 +292,20 @@ class AiDataEngine:
 
     # returns the live output from the class to user
     def grab(self):
-        return {'e-AI output': self.datadict.get('master_move_output'),
+        return {'e-AI output': self.config.datadict.get('master_move_output'),
                 'intensity': 0,
                 'individual NN outs':
-                    {'move RNN': self.datadict.get('move_rnn'),
-                     'affect RNN': self.datadict.get('affect_rnn'),
-                         'move_affect_conv2': self.datadict.get('move_affect_conv2'),
-                         'affect_move_conv2': self.datadict.get('affect_move_conv2')
+                    {'move RNN': self.config.datadict.get('move_rnn'),
+                     'affect RNN': self.config.datadict.get('affect_rnn'),
+                         'move_affect_conv2': self.config.datadict.get('move_affect_conv2'),
+                         'affect_move_conv2': self.config.datadict.get('affect_move_conv2')
                      }
                 }
 
     # live input of user-data into class (0.0-1.0)
     # called and scheduled by user class
     def put(self, user_data):
-        self.datadict['user_in'] = user_data
+        self.config.datadict['user_in'] = user_data
 
     # user change the overall speed of the engine
     def speed(self, user_speed):
