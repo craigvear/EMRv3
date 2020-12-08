@@ -103,14 +103,14 @@ class AffectMoveCONV2(Borg):
         print('AffectMoveCONV2 initialization')
         self.affect_move_conv2 = load_model('training/models/EMR-3_conv2D_affect-move.h5')
 
-    def predict(self):
+    def predicty(self):
         # self.in_val = in_val
         # self.input_val_from = str(self.netnames[self.in_val])
         # print('IN VAL', self.in_val, self.input_val_from)
         # get the current value and reshape ready for input for prediction
         localval = self.datadict.get('affect_rnn')
         localval = np.reshape(localval, (1, 1, 1))
-        print(localval)
+        print(' predict input to AffectMoveCONV2            ', localval)
         # predictions and input with localval
         self.pred = self.affect_move_conv2.predict(localval)
         print(f"  'affect_move_conv2' in: {localval} predicted {self.pred}")
@@ -152,10 +152,10 @@ class AiDataEngine(Borg):
         print(self.datadict)
         #
         # instantiate nets as objects and make  models
-        self.move_rnn = MoveRNN()
-        self.affect_rnn = AffectRNN()
-        self.move_affect_conv2 = MoveAffectCONV2()
-        self.affect_move_conv2 = AffectMoveCONV2()
+        self.move_net = MoveRNN()
+        self.affectnet = AffectRNN()
+        self.move_affect_net = MoveAffectCONV2()
+        self.affect_move_net = AffectMoveCONV2()
         #
         # # set out variables
         # self.netnames = ['move_rnn',
@@ -186,32 +186,10 @@ class AiDataEngine(Borg):
     # makes a prediction for a given net and defined input var
     async def net4(self):
         while self.interrupt_bang:
-            self.affect_move_conv2.predict()
+            self.affect_move_net.predicty()
             # todo returning only 1st position. 4 could be used in a randomiser
             # return pred[0][0]
         await trio.sleep(self.rhythm_rate)
-
-    # control method for all net predictions
-    # async def nets(self, net, in_dict):
-    #     self.net = net
-    #     self.in_dict = self.config.netnames[in_dict]
-    #     self.net_name = self.config.netnames[net]
-    #     print(self.in_dict, self.net_name)
-    #
-    #     while self.config.interrupt_bang:
-    #         # get the current value of the net ready for input for prediction
-    #         self.localval = self.config.datadict.get(self.in_dict)
-    #
-    #         # predictions and input with localval
-    #         self.pred = self.prediction(self.net, self.localval)
-    #         print(f"  {self.net_name} in: {self.localval} predicted {self.pred}")
-    #
-    #         # save to data dict and master move out if
-    #         self.config.datadict[self.net_name] = self.pred
-    #         self.config.datadict['master_move_output'] = self.pred
-    #
-    #         await trio.sleep(self.rhythm_rate)
-    #         print(f"  {self.net}: looping!")
 
     async def random_poetry(self):
         # outputs a stream of random poetry
