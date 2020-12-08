@@ -20,11 +20,14 @@ import numpy as np
 #
 # --------------------------------------------------
 
-class Config:
+class Borg:
+    __shared_state = {}
     def __init__(self):
-        # self.interrupt_bang = False
-        # self.running = False
-        # self.routing = False
+        self.__dict__ = self.__shared_state
+
+        self.interrupt_bang = False
+        self.running = False
+        self.routing = False
 
         # make a default dict for the engine
         self.datadict = {'move_rnn': 0,
@@ -37,12 +40,29 @@ class Config:
                          'rhythm_rnn': 0,
                          'affect_net': 0}
 
+        # # fill with random values
+        # self.dict_fill()
+        # print(self.datadict)
+
+        # # instantiate nets as objects and make  models
+        # self.move_rnn = MoveRNN()
+        # self.affect_rnn = AffectRNN()
+        # self.move_affect_conv2 = MoveAffectCONV2()
+        # self.affect_move_conv2 = AffectMoveCONV2()
+
         # set out variables
         self.netnames = ['move_rnn',
                          'affect_rnn',
                          'move_affect_conv2',
                          'affect_move_conv2']
 
+        # self.netlist = [self.move_rnn,
+        #                 self.affect_rnn,
+        #                 self.move_affect_conv2,
+        #                 self.affect_move_conv2]
+
+        self.rhythm_rate = 0.1
+        self.affect_listen = 0
 
 # --------------------------------------------------
 #
@@ -50,37 +70,54 @@ class Config:
 #
 # --------------------------------------------------
 
-class MoveRNN:
+class MoveRNN(Borg):
     def __init__(self):
+        Borg.__init__(self)
         print('MoveRNN initialization')
         self.move_rnn = load_model('training/models/EMR-3_RNN_skeleton_data.nose.x.h5')
 
     def predict(self, in_val):
         return self.move_rnn.predict(in_val)
 
-class AffectRNN:
+class AffectRNN(Borg):
     def __init__(self):
+        Borg.__init__(self)
         print('AffectRNN initialization')
         self.affect_rnn = load_model('training/models/EMR-3_RNN_bitalino.h5')
 
     def predict(self, in_val):
         return self.affect_rnn.predict(in_val)
 
-class MoveAffectCONV2:
+class MoveAffectCONV2(Borg):
     def __init__(self):
+        Borg.__init__(self)
         print('MoveAffectCONV2 initialization')
         self.move_affect_conv2 = load_model('training/models/EMR-3_conv2D_move-affect.h5')
 
     def predict(self, in_val):
         return self.move_affect_conv2.predict(in_val)
 
-class AffectMoveCONV2:
+class AffectMoveCONV2(Borg):
     def __init__(self):
+        Borg.__init__(self)
         print('AffectMoveCONV2 initialization')
         self.affect_move_conv2 = load_model('training/models/EMR-3_conv2D_affect-move.h5')
 
-    def predict(self, in_val):
-        return self.affect_move_conv2.predict(in_val)
+    def predict(self):
+        # self.in_val = in_val
+        # self.input_val_from = str(self.netnames[self.in_val])
+        # print('IN VAL', self.in_val, self.input_val_from)
+        # get the current value and reshape ready for input for prediction
+        localval = self.datadict.get('affect_rnn')
+        localval = np.reshape(localval, (1, 1, 1))
+        print(localval)
+        # predictions and input with localval
+        self.pred = self.affect_move_conv2.predict(localval)
+        print(f"  'affect_move_conv2' in: {localval} predicted {self.pred}")
+
+        # save to data dict and master move out ONLY 1st data
+        self.datadict['affect_move_conv2'] = self.pred[0][0]
+        self.datadict['master_move_output'] = self.pred
 
 
 # --------------------------------------------------
@@ -89,14 +126,15 @@ class AffectMoveCONV2:
 #
 # --------------------------------------------------
 
-class AiDataEngine:
+class AiDataEngine(Borg):
     def __init__(self, speed=1):
+        Borg.__init__(self)
         self.global_speed = speed
-        self.config = Config()
 
-        self.interrupt_bang = False
-        self.running = False
-        self.routing = False
+        #
+        # self.interrupt_bang = False
+        # self.running = False
+        # self.routing = False
         #
         # # make a default dict for the engine
         # self.datadict = {'move_rnn': 0,
@@ -111,8 +149,8 @@ class AiDataEngine:
         #
         # fill with random values
         self.dict_fill()
-        print(self.config.datadict)
-
+        print(self.datadict)
+        #
         # instantiate nets as objects and make  models
         self.move_rnn = MoveRNN()
         self.affect_rnn = AffectRNN()
@@ -130,14 +168,14 @@ class AiDataEngine:
         #                 self.move_affect_conv2,
         #                 self.affect_move_conv2]
         #
-        self.rhythm_rate = 0.1
-        self.affect_listen = 0
+        # # self.rhythm_rate = 0.1
+        # self.affect_listen = 0
 
     # fills the dictionary with rnd values for each key
     def dict_fill(self):
-        for key in self.config.datadict.keys():
+        for key in self.datadict.keys():
             rnd = random()
-            self.config.datadict[key] = rnd
+            self.datadict[key] = rnd
 
     # --------------------------------------------------
     #
@@ -146,47 +184,39 @@ class AiDataEngine:
     # --------------------------------------------------
 
     # makes a prediction for a given net and defined input var
-    def prediction(self, net, in_val):
-        print(net, in_val)
-        self.pred_in_val = np.reshape(in_val, (1, 1, 1))
-        print(self.localval)
-        if self.net_name == 0:
-            pred = self.move_rnn.predict(self.pred_in_val)
-        elif self.net_name == 1:
-            pred = self.affect_rnn.predict(self.pred_in_val)
-        elif self.net_name == 2:
-            pred = self.move_affect_conv2.predict(self.pred_in_val)
-        else:
-            pred = self.affect_move_conv2.predict(self.pred_in_val)
-        # todo returning only 1st position. 4 could be used in a randomiser
-        return pred[0][0]
+    async def net4(self):
+        while self.interrupt_bang:
+            self.affect_move_conv2.predict()
+            # todo returning only 1st position. 4 could be used in a randomiser
+            # return pred[0][0]
+        await trio.sleep(self.rhythm_rate)
 
     # control method for all net predictions
-    async def nets(self, net, in_dict):
-        self.net = net
-        self.in_dict = self.config.netnames[in_dict]
-        self.net_name = self.config.netnames[net]
-        print(self.in_dict, self.net_name)
-
-        while self.interrupt_bang:
-            # get the current value of the net ready for input for prediction
-            self.localval = self.config.datadict.get(self.in_dict)
-
-            # predictions and input with localval
-            self.pred = self.prediction(self.net, self.localval)
-            print(f"  {self.net_name} in: {self.localval} predicted {self.pred}")
-
-            # save to data dict and master move out if
-            self.config.datadict[self.net_name] = self.pred
-            self.config.datadict['master_move_output'] = self.pred
-
-            await trio.sleep(self.rhythm_rate)
-            print(f"  {self.net}: looping!")
+    # async def nets(self, net, in_dict):
+    #     self.net = net
+    #     self.in_dict = self.config.netnames[in_dict]
+    #     self.net_name = self.config.netnames[net]
+    #     print(self.in_dict, self.net_name)
+    #
+    #     while self.config.interrupt_bang:
+    #         # get the current value of the net ready for input for prediction
+    #         self.localval = self.config.datadict.get(self.in_dict)
+    #
+    #         # predictions and input with localval
+    #         self.pred = self.prediction(self.net, self.localval)
+    #         print(f"  {self.net_name} in: {self.localval} predicted {self.pred}")
+    #
+    #         # save to data dict and master move out if
+    #         self.config.datadict[self.net_name] = self.pred
+    #         self.config.datadict['master_move_output'] = self.pred
+    #
+    #         await trio.sleep(self.rhythm_rate)
+    #         print(f"  {self.net}: looping!")
 
     async def random_poetry(self):
         # outputs a stream of random poetry
         while self.interrupt_bang:
-            self.config.datadict['rnd_poetry'] = random()
+            self.datadict['rnd_poetry'] = random()
             await trio.sleep(self.rhythm_rate)
 
     # --------------------------------------------------
@@ -228,16 +258,16 @@ class AiDataEngine:
         while self.interrupt_bang:
             rnd_stream = randrange(3)
             if rnd_stream == 0:
-                self.affect_listen = self.config.datadict['user_in']
+                self.affect_listen = self.datadict['user_in']
             elif rnd_stream == 1:
-                self.affect_listen = self.config.datadict['rnd_poetry']
+                self.affect_listen = self.datadict['rnd_poetry']
             else:
-                self.affect_listen = self.config.datadict['affect_net']
+                self.affect_listen = self.datadict['affect_net']
 
             # hold this stream for 1-4 secs, unless interrupt bang
             end_time = time() + (randrange(1000, 4000) / 1000)
             while time() < end_time:
-                self.config.datadict['master_move_output'] = self.affect_listen
+                self.datadict['master_move_output'] = self.affect_listen
                 # print(self.datadict['master_move_output'])
                 # hold until end of loop, major affect_bang, or medium routing change
                 if not self.interrupt_bang or not self.routing:
@@ -256,17 +286,17 @@ class AiDataEngine:
             self.interrupt_bang = True
             async with trio.open_nursery() as nursery:
                 # spawning all the nets
-                print("parent: spawning net1...")
-                nursery.start_soon(self.nets, 0, 0)
-
-                print("parent: spawning net2...")
-                nursery.start_soon(self.nets, 1, 1)
-
-                print("parent: spawning net3...")
-                nursery.start_soon(self.nets, 2, 2)
+                # print("parent: spawning net1...")
+                # nursery.start_soon(self.nets, 0, 0)
+                #
+                # print("parent: spawning net2...")
+                # nursery.start_soon(self.nets, 1, 1)
+                #
+                # print("parent: spawning net3...")
+                # nursery.start_soon(self.nets, 2, 2)
 
                 print("parent: spawning net4...")
-                nursery.start_soon(self.nets, 3, 1)
+                nursery.start_soon(self.net4)
 
                 # spawning scheduling methods
                 print("parent: spawning master cog...")
@@ -292,20 +322,20 @@ class AiDataEngine:
 
     # returns the live output from the class to user
     def grab(self):
-        return {'e-AI output': self.config.datadict.get('master_move_output'),
+        return {'e-AI output': self.datadict.get('master_move_output'),
                 'intensity': 0,
                 'individual NN outs':
-                    {'move RNN': self.config.datadict.get('move_rnn'),
-                     'affect RNN': self.config.datadict.get('affect_rnn'),
-                         'move_affect_conv2': self.config.datadict.get('move_affect_conv2'),
-                         'affect_move_conv2': self.config.datadict.get('affect_move_conv2')
+                    {'move RNN': self.datadict.get('move_rnn'),
+                     'affect RNN': self.datadict.get('affect_rnn'),
+                         'move_affect_conv2': self.datadict.get('move_affect_conv2'),
+                         'affect_move_conv2': self.datadict.get('affect_move_conv2')
                      }
                 }
 
     # live input of user-data into class (0.0-1.0)
     # called and scheduled by user class
     def put(self, user_data):
-        self.config.datadict['user_in'] = user_data
+        self.datadict['user_in'] = user_data
 
     # user change the overall speed of the engine
     def speed(self, user_speed):
