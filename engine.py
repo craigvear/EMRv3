@@ -48,7 +48,7 @@ class MoveAffectCONV2:
         self.move_affect_conv2 = load_model('training/models/EMR-3_conv2D_move-affect.h5')
 
     def predict(self, in_val):
-       # predictions and input with localval
+        # predictions and input with localval
         self.pred = self.move_affect_conv2.predict(in_val)
         print(f"  'affect_move_conv2' in: {in_val} predicted {self.pred}")
         return self.pred
@@ -234,7 +234,7 @@ class AiDataEngine():
             end_time = time() + (randrange(1000, 4000) / 1000)
             while time() < end_time:
                 self.datadict['master_move_output'] = self.affect_listen
-                # print(self.datadict['master_move_output'])
+                print(f"                                    master move output == {self.datadict['master_move_output']}")
                 # hold until end of loop, major affect_bang, or medium routing change
                 if not self.interrupt_bang or not self.routing:
                     break
