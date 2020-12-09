@@ -28,7 +28,6 @@ class MoveRNN:
     def predict(self, in_val):
         # predictions and input with localval
         self.pred = self.move_rnn.predict(in_val)
-        print(f"  'move_rnn' in: {in_val} predicted {self.pred}")
         return self.pred
 
 class AffectRNN:
@@ -39,7 +38,6 @@ class AffectRNN:
     def predict(self, in_val):
         # predictions and input with localval
         self.pred = self.affect_rnn.predict(in_val)
-        print(f"  'affect_rnn' in: {in_val} predicted {self.pred}")
         return self.pred
 
 class MoveAffectCONV2:
@@ -50,7 +48,6 @@ class MoveAffectCONV2:
     def predict(self, in_val):
         # predictions and input with localval
         self.pred = self.move_affect_conv2.predict(in_val)
-        print(f"  'affect_move_conv2' in: {in_val} predicted {self.pred}")
         return self.pred
 
 class AffectMoveCONV2:
@@ -61,7 +58,6 @@ class AffectMoveCONV2:
     def predict(self, in_val):
         # predictions and input with localval
         self.pred = self.affect_move_conv2.predict(in_val)
-        print(f"  'affect_move_conv2' in: {in_val} predicted {self.pred}")
         return self.pred
 
 # --------------------------------------------------
@@ -86,7 +82,8 @@ class AiDataEngine():
                          'rnd_poetry': 0,
                          'rhythm_rnn': 0,
                          'affect_net': 0}
-        # set out variables
+
+        # sname list for nets
         self.netnames = ['move_rnn',
                          'affect_rnn',
                          'move_affect_conv2',
@@ -99,18 +96,17 @@ class AiDataEngine():
         # fill with random values
         self.dict_fill()
         print(self.datadict)
-        #
+
         # instantiate nets as objects and make  models
         self.move_net = MoveRNN()
         self.affect_net = AffectRNN()
         self.move_affect_net = MoveAffectCONV2()
         self.affect_move_net = AffectMoveCONV2()
 
-    # fills the dictionary with rnd values for each key
-    def dict_fill(self):
-        for key in self.datadict.keys():
-            rnd = random()
-            self.datadict[key] = rnd
+        # logging on/off switches
+        self.net_logging = False
+        self.master_logging = False
+
 
     # --------------------------------------------------
     #
@@ -126,6 +122,8 @@ class AiDataEngine():
 
             # send in val to net object for prediction
             pred = self.move_net.predict(in_val)
+            if self.net_logging:
+                print(f"  'move_rnn' in: {in_val} predicted {pred}")
 
             # put prediction back into the dict and master
             self.put_pred(0, pred)
@@ -138,6 +136,8 @@ class AiDataEngine():
 
             # send in val to net object for prediction
             pred = self.affect_net.predict(in_val)
+            if self.net_logging:
+                print(f"  'affect_rnn' in: {in_val} predicted {pred}")
 
             # put prediction back into the dict and master
             self.put_pred(0, pred)
@@ -150,6 +150,8 @@ class AiDataEngine():
 
             # send in val to net object for prediction
             pred = self.move_affect_net.predict(in_val)
+            if self.net_logging:
+                print(f"  move_affect_conv2' in: {in_val} predicted {pred}")
 
             # put prediction back into the dict and master
             self.put_pred(0, pred)
@@ -162,6 +164,8 @@ class AiDataEngine():
 
             # send in val to net object for prediction
             pred = self.affect_move_net.predict(in_val)
+            if self.net_logging:
+                print(f"  'affect_move_conv2' in: {in_val} predicted {pred}")
 
             # put prediction back into the dict and master
             self.put_pred(0, pred)
@@ -181,10 +185,17 @@ class AiDataEngine():
 
     def put_pred(self, which_dict, pred):
         out_pred_val = pred[0][randrange(4)]
-        print(out_pred_val)
+        if self.master_logging:
+            print(f"out pred val == {out_pred_val},   master move output == {self.datadict['master_move_output']}")
         # save to data dict and master move out ONLY 1st data
         self.datadict[self.netnames[which_dict]] = out_pred_val
         self.datadict['master_move_output'] = out_pred_val
+
+    # fills the dictionary with rnd values for each key
+    def dict_fill(self):
+        for key in self.datadict.keys():
+            rnd = random()
+            self.datadict[key] = rnd
 
     # --------------------------------------------------
     #
@@ -235,7 +246,7 @@ class AiDataEngine():
             end_time = time() + (randrange(1000, 4000) / 1000)
             while time() < end_time:
                 self.datadict['master_move_output'] = self.affect_listen
-                print(f"                                    master move output == {self.datadict['master_move_output']}")
+
                 # hold until end of loop, major affect_bang, or medium routing change
                 if not self.interrupt_bang or not self.routing:
                     break
