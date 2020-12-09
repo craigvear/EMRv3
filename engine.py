@@ -105,7 +105,7 @@ class AiDataEngine():
 
         # logging on/off switches
         self.net_logging = False
-        self.master_logging = False
+        self.master_logging = True
 
 
     # --------------------------------------------------
