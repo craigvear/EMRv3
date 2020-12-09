@@ -16,17 +16,62 @@ import numpy as np
 
 # --------------------------------------------------
 #
-#  BORG class following:
-#  https://code.activestate.com/recipes/66531-singleton-we-dont-need-no-stinkin-singleton-the-bo/
-# https://www.oreilly.com/library/view/python-cookbook/0596001673/ch05s23.html
+# instantiate an object for each neural net
 #
 # --------------------------------------------------
 
-class Borg:
-    __shared_state = {}
+class MoveRNN:
     def __init__(self):
-        self.__dict__ = self.__shared_state
+        print('MoveRNN initialization')
+        self.move_rnn = load_model('training/models/EMR-3_RNN_skeleton_data.nose.x.h5')
 
+    def predict(self, in_val):
+        # predictions and input with localval
+        self.pred = self.move_rnn.predict(in_val)
+        print(f"  'move_rnn' in: {in_val} predicted {self.pred}")
+        return self.pred
+
+class AffectRNN:
+    def __init__(self):
+        print('AffectRNN initialization')
+        self.affect_rnn = load_model('training/models/EMR-3_RNN_bitalino.h5')
+
+    def predict(self, in_val):
+        # predictions and input with localval
+        self.pred = self.affect_rnn.predict(in_val)
+        print(f"  'affect_rnn' in: {in_val} predicted {self.pred}")
+        return self.pred
+
+class MoveAffectCONV2:
+    def __init__(self):
+        print('MoveAffectCONV2 initialization')
+        self.move_affect_conv2 = load_model('training/models/EMR-3_conv2D_move-affect.h5')
+
+    def predict(self, in_val):
+       # predictions and input with localval
+        self.pred = self.move_affect_conv2.predict(in_val)
+        print(f"  'affect_move_conv2' in: {in_val} predicted {self.pred}")
+        return self.pred
+
+class AffectMoveCONV2:
+    def __init__(self):
+        print('AffectMoveCONV2 initialization')
+        self.affect_move_conv2 = load_model('training/models/EMR-3_conv2D_affect-move.h5')
+
+    def predict(self, in_val):
+        # predictions and input with localval
+        self.pred = self.affect_move_conv2.predict(in_val)
+        print(f"  'affect_move_conv2' in: {in_val} predicted {self.pred}")
+        return self.pred
+
+# --------------------------------------------------
+#
+# controls all thought-trains and affect responses
+#
+# --------------------------------------------------
+
+class AiDataEngine():
+    def __init__(self, speed=1):
         self.interrupt_bang = False
         self.running = False
         self.routing = False
@@ -41,7 +86,6 @@ class Borg:
                          'rnd_poetry': 0,
                          'rhythm_rnn': 0,
                          'affect_net': 0}
-
         # set out variables
         self.netnames = ['move_rnn',
                          'affect_rnn',
@@ -50,99 +94,6 @@ class Borg:
 
         self.rhythm_rate = 0.1
         self.affect_listen = 0
-
-# --------------------------------------------------
-#
-# instantiate an object for each neural net
-#
-# --------------------------------------------------
-
-class MoveRNN(Borg):
-    def __init__(self):
-        Borg.__init__(self)
-        print('MoveRNN initialization')
-        self.move_rnn = load_model('training/models/EMR-3_RNN_skeleton_data.nose.x.h5')
-
-    def predict(self):
-        # get the current value and reshape ready for input for prediction
-        localval = self.datadict.get('move_rnn')
-        localval = np.reshape(localval, (1, 1, 1))
-
-        # predictions and input with localval
-        self.pred = self.move_rnn.predict(localval)
-        print(f"  'move_rnn' in: {localval} predicted {self.pred}")
-
-        # save to data dict and master move out ONLY 1st data
-        self.datadict['move_rnn'] = self.pred[0][0]
-        self.datadict['master_move_output'] = self.pred
-
-class AffectRNN(Borg):
-    def __init__(self):
-        Borg.__init__(self)
-        print('AffectRNN initialization')
-        self.affect_rnn = load_model('training/models/EMR-3_RNN_bitalino.h5')
-
-    def predict(self):
-        # get the current value and reshape ready for input for prediction
-        localval = self.datadict.get('affect_rnn')
-        localval = np.reshape(localval, (1, 1, 1))
-
-        # predictions and input with localval
-        self.pred = self.affect_rnn.predict(localval)
-        print(f"  self.affect_rnn in: {localval} predicted {self.pred}")
-
-        # save to data dict and master move out ONLY 1st data
-        self.datadict['affect_rnn'] = self.pred[0][0]
-        self.datadict['master_move_output'] = self.pred
-
-class MoveAffectCONV2(Borg):
-    def __init__(self):
-        Borg.__init__(self)
-        print('MoveAffectCONV2 initialization')
-        self.move_affect_conv2 = load_model('training/models/EMR-3_conv2D_move-affect.h5')
-
-    def predict(self):
-        # get the current value and reshape ready for input for prediction
-        localval = self.datadict.get('move_affect_conv2')
-        localval = np.reshape(localval, (1, 1, 1))
-
-        # predictions and input with localval
-        self.pred = self.move_affect_conv2.predict(localval)
-        print(f"  'affect_move_conv2' in: {localval} predicted {self.pred}")
-
-        # save to data dict and master move out ONLY 1st data
-        self.datadict['move_affect_conv2'] = self.pred[0][0]
-        self.datadict['master_move_output'] = self.pred
-
-class AffectMoveCONV2(Borg):
-    def __init__(self):
-        Borg.__init__(self)
-        print('AffectMoveCONV2 initialization')
-        self.affect_move_conv2 = load_model('training/models/EMR-3_conv2D_affect-move.h5')
-
-    def predict(self):
-        # get the current value and reshape ready for input for prediction
-        localval = self.datadict.get('affect_rnn')
-        localval = np.reshape(localval, (1, 1, 1))
-
-        # predictions and input with localval
-        self.pred = self.affect_move_conv2.predict(localval)
-        print(f"  'affect_move_conv2' in: {localval} predicted {self.pred}")
-
-        # save to data dict and master move out ONLY 1st data
-        self.datadict['affect_move_conv2'] = self.pred[0][0]
-        self.datadict['master_move_output'] = self.pred
-
-
-# --------------------------------------------------
-#
-# controls all thought-trains and affect responses
-#
-# --------------------------------------------------
-
-class AiDataEngine(Borg):
-    def __init__(self, speed=1):
-        Borg.__init__(self)
         self.global_speed = speed
 
         # fill with random values
@@ -170,29 +121,69 @@ class AiDataEngine(Borg):
     # makes a prediction for a given net and defined input var
     async def net1(self):
         while self.interrupt_bang:
-            self.move_net.predict()
-        await trio.sleep(self.rhythm_rate)
+            # get input var from dict (NB not always self)
+            in_val = self.get_in_val(0)
+
+            # send in val to net object for prediction
+            pred = self.move_net.predict(in_val)
+
+            # put prediction back into the dict and master
+            self.put_pred(0, pred)
+            await trio.sleep(self.rhythm_rate)
 
     async def net2(self):
         while self.interrupt_bang:
-            self.affect_net.predict()
-        await trio.sleep(self.rhythm_rate)
+            # get input var from dict (NB not always self)
+            in_val = self.get_in_val(1)
+
+            # send in val to net object for prediction
+            pred = self.affect_net.predict(in_val)
+
+            # put prediction back into the dict and master
+            self.put_pred(0, pred)
+            await trio.sleep(self.rhythm_rate)
 
     async def net3(self):
         while self.interrupt_bang:
-            self.move_affect_net.predict()
-        await trio.sleep(self.rhythm_rate)
+            # get input var from dict (NB not always self)
+            in_val = self.get_in_val(2)
+
+            # send in val to net object for prediction
+            pred = self.move_affect_net.predict(in_val)
+
+            # put prediction back into the dict and master
+            self.put_pred(0, pred)
+            await trio.sleep(self.rhythm_rate)
 
     async def net4(self):
         while self.interrupt_bang:
-            self.affect_move_net.predict()
-        await trio.sleep(self.rhythm_rate)
+            # get input var from dict (NB not always self)
+            in_val = self.get_in_val(1)
+
+            # send in val to net object for prediction
+            pred = self.affect_move_net.predict(in_val)
+
+            # put prediction back into the dict and master
+            self.put_pred(0, pred)
+            await trio.sleep(self.rhythm_rate)
 
     async def random_poetry(self):
         # outputs a stream of random poetry
         while self.interrupt_bang:
             self.datadict['rnd_poetry'] = random()
             await trio.sleep(self.rhythm_rate)
+
+    def get_in_val(self, which_dict):
+        # get the current value and reshape ready for input for prediction
+        input_val = self.datadict.get(self.netnames[which_dict])
+        input_val = np.reshape(input_val, (1, 1, 1))
+        return input_val
+
+    def put_pred(self, which_dict, pred):
+        out_pred_val = pred[0][randrange(4)]
+        # save to data dict and master move out ONLY 1st data
+        self.datadict[self.netnames[which_dict]] = out_pred_val
+        self.datadict['master_move_output'] = out_pred_val
 
     # --------------------------------------------------
     #
