@@ -1,10 +1,12 @@
 # --------------------------------------------------
 #
 # Embodied AI Engine Prototype v0.9
-# 2020/12/03
+# 2020/12/16
 #
 # © Craig Vear 2020
 # cvear@dmu.ac.uk
+#
+# Dedicated to Fabrizio Poltronieri
 #
 # --------------------------------------------------
 
