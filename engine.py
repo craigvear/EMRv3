@@ -306,6 +306,8 @@ class AiDataEngine():
                     print("parent: spawning sender...")
                     nursery.start_soon(self.sender, client_stream)
 
+# todo - self affect percpetion!!!
+
     # --------------------------------------------------
     #
     # user accessible methods
