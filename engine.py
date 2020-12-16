@@ -13,6 +13,7 @@ from random import randrange, random
 from time import time
 from tensorflow.keras.models import load_model
 import numpy as np
+import sys
 
 # --------------------------------------------------
 #
@@ -71,6 +72,8 @@ class AiDataEngine():
         self.interrupt_bang = False
         self.running = False
         self.routing = False
+        self.PORT = 12345
+        self.IP_ADDR = "127.0.0.1"
 
         # make a default dict for the engine
         self.datadict = {'move_rnn': 0,
@@ -106,7 +109,6 @@ class AiDataEngine():
         # logging on/off switches
         self.net_logging = False
         self.master_logging = True
-
 
     # --------------------------------------------------
     #
@@ -261,36 +263,43 @@ class AiDataEngine():
     async def flywheel(self):
         print("parent: started!")
         while self.running:
-            self.interrupt_bang = True
-            async with trio.open_nursery() as nursery:
-                # spawning all the nets
-                print("parent: spawning net1...")
-                nursery.start_soon(self.net1)
+            print("parent: connecting to 127.0.0.1:{}".format(self.PORT))
+            client_stream = await trio.open_tcp_stream(self.IP_ADDR, self.PORT)
+            async with client_stream:
+                self.interrupt_bang = True
+                async with trio.open_nursery() as nursery:
+                    # spawning all the nets
+                    print("parent: spawning net1...")
+                    nursery.start_soon(self.net1)
 
-                print("parent: spawning net2...")
-                nursery.start_soon(self.net2)
+                    print("parent: spawning net2...")
+                    nursery.start_soon(self.net2)
 
-                print("parent: spawning net3...")
-                nursery.start_soon(self.net3)
+                    print("parent: spawning net3...")
+                    nursery.start_soon(self.net3)
 
-                print("parent: spawning net4...")
-                nursery.start_soon(self.net4)
+                    print("parent: spawning net4...")
+                    nursery.start_soon(self.net4)
 
-                # spawning scheduling methods
-                print("parent: spawning master cog...")
-                nursery.start_soon(self.master_clock)
+                    # spawning scheduling methods
+                    print("parent: spawning master cog...")
+                    nursery.start_soon(self.master_clock)
 
-                # spawning rhythm gen
-                print("parent: spawning rhythm generator...")
-                nursery.start_soon(self.streamer)
+                    # spawning rhythm gen
+                    print("parent: spawning rhythm generator...")
+                    nursery.start_soon(self.streamer)
 
-                # spawning affect listener
-                print("parent: spawning affect listener...")
-                nursery.start_soon(self.affect)
+                    # spawning affect listener
+                    print("parent: spawning affect listener...")
+                    nursery.start_soon(self.affect)
 
-                # spawning poetry gen
-                print("parent: spawning rhythm generator live input...")
-                nursery.start_soon(self.random_poetry)
+                    # spawning poetry gen
+                    print("parent: spawning rhythm generator live input...")
+                    nursery.start_soon(self.random_poetry)
+
+                    # spawning listening port for user input
+                    print("parent: spawning receiver...")
+                    nursery.start_soon(self.receiver, client_stream)
 
     # --------------------------------------------------
     #
@@ -312,8 +321,15 @@ class AiDataEngine():
 
     # live input of user-data into class (0.0-1.0)
     # called and scheduled by user class
-    def put(self, user_data):
-        self.datadict['user_in'] = user_data
+    # def receiver(self, user_data):
+    #     self.datadict['user_in'] = user_data
+
+    async def receiver(self, client_stream):
+        print("receiver: started!")
+        async for data in client_stream:
+            print("receiver: got data {!r}".format(data))
+        print("receiver: connection closed")
+        sys.exit()
 
     # user change the overall speed of the engine
     def speed(self, user_speed):
