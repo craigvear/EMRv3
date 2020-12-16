@@ -109,6 +109,7 @@ class AiDataEngine():
         # logging on/off switches
         self.net_logging = False
         self.master_logging = True
+        self.streaming_logging = True
 
     # --------------------------------------------------
     #
@@ -301,6 +302,10 @@ class AiDataEngine():
                     print("parent: spawning receiver...")
                     nursery.start_soon(self.receiver, client_stream)
 
+                    # spawning sending port for output data
+                    print("parent: spawning sender...")
+                    nursery.start_soon(self.sender, client_stream)
+
     # --------------------------------------------------
     #
     # user accessible methods
@@ -308,26 +313,29 @@ class AiDataEngine():
     # --------------------------------------------------
 
     # returns the live output from the class to user
-    def grab(self):
-        return {'e-AI output': self.datadict.get('master_move_output'),
-                'intensity': 0,
-                'individual NN outs':
-                    {'move RNN': self.datadict.get('move_rnn'),
-                     'affect RNN': self.datadict.get('affect_rnn'),
-                         'move_affect_conv2': self.datadict.get('move_affect_conv2'),
-                         'affect_move_conv2': self.datadict.get('affect_move_conv2')
-                     }
-                }
-
-    # live input of user-data into class (0.0-1.0)
-    # called and scheduled by user class
-    # def receiver(self, user_data):
-    #     self.datadict['user_in'] = user_data
+    async def sender(self, client_stream):
+        print("sender: started!")
+        while self.running:
+            data = {'e-AI output': self.datadict.get('master_move_output'),
+                    'intensity': 0,
+                    'individual NN outs':
+                        {'move RNN': self.datadict.get('move_rnn'),
+                         'affect RNN': self.datadict.get('affect_rnn'),
+                             'move_affect_conv2': self.datadict.get('move_affect_conv2'),
+                             'affect_move_conv2': self.datadict.get('affect_move_conv2')
+                         }
+                    }
+            if self.streaming_logging:
+                print("sender: sending {!r}".format(data))
+            await client_stream.send_all(data)
+            await trio.sleep(self.rhythm_rate)
 
     async def receiver(self, client_stream):
         print("receiver: started!")
         async for data in client_stream:
-            print("receiver: got data {!r}".format(data))
+            self.datadict['user_in'] = data
+            if self.streaming_logging:
+                print("receiver: got data {!r}".format(data))
         print("receiver: connection closed")
         sys.exit()
 
