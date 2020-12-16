@@ -334,6 +334,7 @@ class AiDataEngine():
             await client_stream.send_all(data)
             await trio.sleep(self.rhythm_rate)
 
+    # receives user data from client (typically live audio input)
     async def receiver(self, client_stream):
         print("receiver: started!")
         async for data in client_stream:
