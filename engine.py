@@ -155,13 +155,14 @@ class AiDataEngine():
 
             await trio.sleep(self.rhythm_rate)
 
-
+    # function to get input value for net prediction from dictionary
     def get_in_val(self, which_dict):
         # get the current value and reshape ready for input for prediction
         input_val = self.datadict.get(self.netnames[which_dict])
         input_val = np.reshape(input_val, (1, 1, 1))
         return input_val
 
+    # function to put prediction value from net into dictionary
     def put_pred(self, which_dict, pred):
         out_pred_val = pred[0][randrange(4)]
         if self.master_logging:
@@ -170,7 +171,7 @@ class AiDataEngine():
         self.datadict[self.netnames[which_dict]] = out_pred_val
         self.datadict['master_move_output'] = out_pred_val
 
-    # fills the dictionary with rnd values for each key
+    # fills the dictionary with rnd values for each key of data dictionary
     def dict_fill(self):
         for key in self.datadict.keys():
             rnd = random()
@@ -207,6 +208,7 @@ class AiDataEngine():
             # else slow the loop down
             else:
                 await trio.sleep(self.rhythm_rate)
+            # self.interrupt_bang = True
 
     # define which feed to listen to, and duration
     # and a course of affect response
