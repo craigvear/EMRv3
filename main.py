@@ -1,9 +1,24 @@
-from engine import AiDataEngine
-from time import sleep
-import trio
+import socket
+import pickle
+from random import random
 
+HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
+PORT = 65432
+# Port to listen on (non-privileged ports are > 1023)
 
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    s.bind((HOST, PORT))
+    s.listen()
+    conn, addr = s.accept()
+    with conn:
+        print('Connected by', addr)
+        while True:
+            data = conn.recv(1024)
+            data_loaded = pickle.loads(data)
+            print(f'incoming data = {data_loaded}')
 
-
-
-
+            rnd = random()
+            send_rnd = pickle.dumps(rnd, -1)
+            # if not data:
+            #     break
+            conn.sendall(send_rnd)

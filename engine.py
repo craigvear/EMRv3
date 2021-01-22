@@ -1,7 +1,7 @@
 # --------------------------------------------------
 #
-# Embodied AI Engine Prototype v0.9
-# 2020/12/16
+# Embodied AI Engine Prototype v0.10
+# 2021/01/22
 #
 # © Craig Vear 2020
 # cvear@dmu.ac.uk
@@ -16,6 +16,7 @@ from time import time
 from tensorflow.keras.models import load_model
 import numpy as np
 import sys
+import pickle
 
 # --------------------------------------------------
 #
@@ -74,7 +75,7 @@ class AiDataEngine():
         self.interrupt_bang = False
         self.running = False
         self.routing = False
-        self.PORT = 12345
+        self.PORT = 65432
         self.IP_ADDR = "127.0.0.1"
 
         # make a default dict for the engine
@@ -88,7 +89,7 @@ class AiDataEngine():
                          'rhythm_rnn': 0,
                          'affect_net': 0}
 
-        # sname list for nets
+        # name list for nets
         self.netnames = ['move_rnn',
                          'affect_rnn',
                          'move_affect_conv2',
@@ -109,7 +110,7 @@ class AiDataEngine():
         self.affect_move_net = AffectMoveCONV2()
 
         # logging on/off switches
-        self.net_logging = False
+        self.net_logging = True
         self.master_logging = True
         self.streaming_logging = True
 
@@ -120,67 +121,40 @@ class AiDataEngine():
     # --------------------------------------------------
 
     # makes a prediction for a given net and defined input var
-    async def net1(self):
+    async def make_data(self):
         while self.interrupt_bang:
-            # get input var from dict (NB not always self)
-            in_val = self.get_in_val(0)
+            # get input vars from dict (NB not always self)
+            in_val1 = self.get_in_val(0)
+            in_val2 = self.get_in_val(1)
+            in_val3 = self.get_in_val(2)
+            in_val4 = self.get_in_val(1)
 
-            # send in val to net object for prediction
-            pred = self.move_net.predict(in_val)
+            # send in vals to net object for prediction
+            pred1 = self.move_net.predict(in_val1)
+            pred2 = self.affect_net.predict(in_val2)
+            pred3 = self.move_affect_net.predict(in_val3)
+            pred4 = self.affect_move_net.predict(in_val4)
+
             if self.net_logging:
-                print(f"  'move_rnn' in: {in_val} predicted {pred}")
+                print(f"  'move_rnn' in: {in_val1} predicted {pred1}")
+                print(f"  'affect_rnn' in: {in_val2} predicted {pred2}")
+                print(f"  move_affect_conv2' in: {in_val3} predicted {pred3}")
+                print(f"  'affect_move_conv2' in: {in_val4} predicted {pred4}")
 
-            # put prediction back into the dict and master
-            self.put_pred(0, pred)
+            # put predictions back into the dicts and master
+            self.put_pred(0, pred1)
+            self.put_pred(0, pred2)
+            self.put_pred(0, pred3)
+            self.put_pred(0, pred4)
+
+            # outputs a stream of random poetry
+            rnd_poetry = random()
+            self.datadict['rnd_poetry'] = rnd_poetry
+            if self.streaming_logging:
+                print(f'random poetry = {rnd_poetry}')
+
             await trio.sleep(self.rhythm_rate)
 
-    async def net2(self):
-        while self.interrupt_bang:
-            # get input var from dict (NB not always self)
-            in_val = self.get_in_val(1)
-
-            # send in val to net object for prediction
-            pred = self.affect_net.predict(in_val)
-            if self.net_logging:
-                print(f"  'affect_rnn' in: {in_val} predicted {pred}")
-
-            # put prediction back into the dict and master
-            self.put_pred(0, pred)
-            await trio.sleep(self.rhythm_rate)
-
-    async def net3(self):
-        while self.interrupt_bang:
-            # get input var from dict (NB not always self)
-            in_val = self.get_in_val(2)
-
-            # send in val to net object for prediction
-            pred = self.move_affect_net.predict(in_val)
-            if self.net_logging:
-                print(f"  move_affect_conv2' in: {in_val} predicted {pred}")
-
-            # put prediction back into the dict and master
-            self.put_pred(0, pred)
-            await trio.sleep(self.rhythm_rate)
-
-    async def net4(self):
-        while self.interrupt_bang:
-            # get input var from dict (NB not always self)
-            in_val = self.get_in_val(1)
-
-            # send in val to net object for prediction
-            pred = self.affect_move_net.predict(in_val)
-            if self.net_logging:
-                print(f"  'affect_move_conv2' in: {in_val} predicted {pred}")
-
-            # put prediction back into the dict and master
-            self.put_pred(0, pred)
-            await trio.sleep(self.rhythm_rate)
-
-    async def random_poetry(self):
-        # outputs a stream of random poetry
-        while self.interrupt_bang:
-            self.datadict['rnd_poetry'] = random()
-            await trio.sleep(self.rhythm_rate)
 
     def get_in_val(self, which_dict):
         # get the current value and reshape ready for input for prediction
@@ -223,11 +197,11 @@ class AiDataEngine():
         # when restarts after interrupt bang fill dict with rnd
         while self.interrupt_bang:
             # if > 60 trigger interrupt bang, break and restart all processes
-            if self.affect_listen > 60:
+            if self.affect_listen > 0.60:
                 self.dict_fill()
                 self.interrupt_bang = False
             # if 30 <> 60 fill dict with random, all processes norm
-            elif 30 < self.affect_listen < 59:
+            elif 0.30 < self.affect_listen < 0.59:
                 self.dict_fill()
                 self.routing = False
             # else slow the loop down
@@ -240,20 +214,27 @@ class AiDataEngine():
         self.routing = True
         while self.interrupt_bang:
             rnd_stream = randrange(3)
-            if rnd_stream == 0:
-                self.affect_listen = self.datadict['user_in']
-            elif rnd_stream == 1:
-                self.affect_listen = self.datadict['rnd_poetry']
-            else:
-                self.affect_listen = self.datadict['affect_net']
 
             # hold this stream for 1-4 secs, unless interrupt bang
             end_time = time() + (randrange(1000, 4000) / 1000)
             while time() < end_time:
-                self.datadict['master_move_output'] = self.affect_listen
 
+                if rnd_stream == 0:
+                    self.affect_listen = self.datadict['user_in']
+                elif rnd_stream == 1:
+                    self.affect_listen = self.datadict['rnd_poetry']
+                else:
+                    self.affect_listen = self.datadict['affect_net']
+
+            # # hold this stream for 1-4 secs, unless interrupt bang
+            # end_time = time() + (randrange(1000, 4000) / 1000)
+            # while time() < end_time:
+                self.datadict['master_move_output'] = self.affect_listen
+                if self.streaming_logging:
+                    print(f'master move output = {self.affect_listen}')
                 # hold until end of loop, major affect_bang, or medium routing change
                 if not self.interrupt_bang or not self.routing:
+                    await trio.sleep(self.rhythm_rate)
                     break
                 await trio.sleep(self.rhythm_rate)
 
@@ -272,17 +253,8 @@ class AiDataEngine():
                 self.interrupt_bang = True
                 async with trio.open_nursery() as nursery:
                     # spawning all the nets
-                    print("parent: spawning net1...")
-                    nursery.start_soon(self.net1)
-
-                    print("parent: spawning net2...")
-                    nursery.start_soon(self.net2)
-
-                    print("parent: spawning net3...")
-                    nursery.start_soon(self.net3)
-
-                    print("parent: spawning net4...")
-                    nursery.start_soon(self.net4)
+                    print("parent: spawning making data ...")
+                    nursery.start_soon(self.make_data)
 
                     # spawning scheduling methods
                     print("parent: spawning master cog...")
@@ -296,9 +268,9 @@ class AiDataEngine():
                     print("parent: spawning affect listener...")
                     nursery.start_soon(self.affect)
 
-                    # spawning poetry gen
-                    print("parent: spawning rhythm generator live input...")
-                    nursery.start_soon(self.random_poetry)
+                    # # spawning poetry gen
+                    # print("parent: spawning rhythm generator live input...")
+                    # nursery.start_soon(self.random_poetry)
 
                     # spawning listening port for user input
                     print("parent: spawning receiver...")
@@ -329,18 +301,22 @@ class AiDataEngine():
                              'affect_move_conv2': self.datadict.get('affect_move_conv2')
                          }
                     }
+            # serialise dict into json for Tx
+            serial_data = pickle.dumps(data, -1)
             if self.streaming_logging:
                 print("sender: sending {!r}".format(data))
-            await client_stream.send_all(data)
+            #  & send
+            await client_stream.send_all(serial_data)
             await trio.sleep(self.rhythm_rate)
 
     # receives user data from client (typically live audio input)
     async def receiver(self, client_stream):
         print("receiver: started!")
         async for data in client_stream:
-            self.datadict['user_in'] = data
+            load_data = pickle.loads(data)
+            self.datadict['user_in'] = load_data
             if self.streaming_logging:
-                print("receiver: got data {!r}".format(data))
+                print("receiver: got data {!r}".format(load_data))
         print("receiver: connection closed")
         sys.exit()
 
