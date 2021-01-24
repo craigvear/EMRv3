@@ -1,33 +1,40 @@
-for i in range(100):
-    if i <= 40:
-        print(i, 'A')
-    elif 40 < i < 60:
-        print(i, 'b')
-    elif i >= 60:
-        print(i, '999')
+import trio
 
 
-#
-# # import tensorflow as tf
-# from tensorflow.keras.models import load_model
-# import numpy as np
-#
-# class Net:
-#     def __init__(self):
-#         print('net init')
-#
-#     def model(self):
-#         self.model = load_model('models/EMR-3_RNN_skeleton_data.nose.x.h5')
-#
-#     def predict(self, inval):
-#         pred = self.model.predict(inval)
-#         return pred
-#
-# net = Net()
-# net.model()
-# for x in range(100):
-#     x /= 100
-#     inval = np.reshape(x, (1, 1, 1))
-#     pred = net.predict(inval)
-#     print(pred)
 
+
+class Numb:
+
+
+    def __init__(self):
+        print('on it')
+        self.class_dict = {'a': 0,
+                      'b': 0,
+                      'c': 0}
+
+    async def adder(self):
+        while True:
+            for key in self.class_dict:
+                v = self.class_dict[key]
+                v += 1
+                self.class_dict[key] = v
+                # print(self.class_dict[key])
+            await trio.sleep(0.2)
+
+    async def showr(self):
+        while True:
+            for key in self.class_dict:
+                print(self.class_dict[key])
+            await trio.sleep(2)
+
+    async def parent(self):
+        while True:
+            async with trio.open_nursery() as nursery:
+                # spawning all the nets
+                nursery.start_soon(self.adder)
+
+                nursery.start_soon(self.showr)
+
+
+go = Numb()
+trio.run(go.parent)

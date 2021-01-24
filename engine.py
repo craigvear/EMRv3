@@ -74,7 +74,7 @@ class AiDataEngine():
     def __init__(self, speed=1):
         self.interrupt_bang = False
         self.running = False
-        self.routing = False
+        # self.routing = False
         self.PORT = 65432
         self.IP_ADDR = "127.0.0.1"
 
@@ -95,6 +95,11 @@ class AiDataEngine():
                          'move_affect_conv2',
                          'affect_move_conv2']
 
+        # names for affect listening
+        self.affectnames = ['user_in',
+                            'rnd_poetry',
+                            'affect_net']
+
         self.rhythm_rate = 0.1
         self.affect_listen = 0
         self.global_speed = speed
@@ -110,9 +115,10 @@ class AiDataEngine():
         self.affect_move_net = AffectMoveCONV2()
 
         # logging on/off switches
-        self.net_logging = True
-        self.master_logging = True
-        self.streaming_logging = True
+        self.net_logging = False
+        self.master_logging = False
+        self.streaming_logging = False
+        self.affect_logging = True
 
     # --------------------------------------------------
     #
@@ -122,7 +128,8 @@ class AiDataEngine():
 
     # makes a prediction for a given net and defined input var
     async def make_data(self):
-        while self.interrupt_bang:
+        while self.running:
+            # while self.interrupt_bang:
             # get input vars from dict (NB not always self)
             in_val1 = self.get_in_val(0)
             in_val2 = self.get_in_val(1)
@@ -143,13 +150,13 @@ class AiDataEngine():
 
             # put predictions back into the dicts and master
             self.put_pred(0, pred1)
-            self.put_pred(0, pred2)
-            self.put_pred(0, pred3)
-            self.put_pred(0, pred4)
+            self.put_pred(1, pred2)
+            self.put_pred(2, pred3)
+            self.put_pred(3, pred4)
 
             # outputs a stream of random poetry
             rnd_poetry = random()
-            self.datadict['rnd_poetry'] = rnd_poetry
+            self.datadict['rnd_poetry'] = random()
             if self.streaming_logging:
                 print(f'random poetry = {rnd_poetry}')
 
@@ -185,60 +192,122 @@ class AiDataEngine():
 
     # controls master scheduling
     async def master_clock(self):
-        loop_dur = randrange(6, 26) * self.global_speed
-        print(f"                 interrupt_listener: started! sleeping now for {loop_dur}...")
-        await trio.sleep(loop_dur)
+        while self.running:
+            self.interrupt_bang = True
+            loop_dur = randrange(6, 26) * self.global_speed
+            print(f"                 interrupt_listener: started! sleeping now for {loop_dur}...")
+            await trio.sleep(loop_dur)
 
-        # sends a bang that retsrats the process ~ refilling the datadict
-        self.interrupt_bang = False
-        print(" ###################   restarting ######################")
+            # sends a bang that restarts the process ~ refilling the datadict
+            self.interrupt_bang = False
 
-    async def streamer(self):
-        # responds to affect streamer
-        # when restarts after interrupt bang fill dict with rnd
-        while self.interrupt_bang:
-            # if > 60 trigger interrupt bang, break and restart all processes
-            if self.affect_listen > 0.60:
-                self.dict_fill()
-                self.interrupt_bang = False
-            # if 30 <> 60 fill dict with random, all processes norm
-            elif 0.30 < self.affect_listen < 0.59:
-                self.dict_fill()
-                self.routing = False
-            # else slow the loop down
-            else:
-                await trio.sleep(self.rhythm_rate)
-            # self.interrupt_bang = True
+            # refill dict with random
+            self.dict_fill()
+            print(" ###################   restarting ######################")
+            await trio.sleep(self.rhythm_rate)
+
+    # async def streamer(self):
+    #     # responds to affect streamer
+    #     # when restarts after interrupt bang fill dict with rnd
+    #     self.interrupt_bang = True
+    #     while self.interrupt_bang:
+    #         # if > 60 trigger interrupt bang, break and restart all processes
+    #         if self.affect_listen > 0.60:
+    #             self.dict_fill()
+    #             self.interrupt_bang = False
+    #         # if 30 <> 60 fill dict with random, all processes norm
+    #         elif 0.30 < self.affect_listen < 0.59:
+    #             self.dict_fill()
+    #             self.routing = False
+    #         # else slow the loop down
+    #         else:
+    #             await trio.sleep(self.rhythm_rate)
+
+    def which_feed(self):
+        rnd_stream = randrange(3)
+
+        # todo - this needs to be a list
+        if rnd_stream == 0:
+            feed = self.datadict['user_in']
+        elif rnd_stream == 1:
+            feed = self.datadict['rnd_poetry']
+        else:
+            feed = self.datadict['affect_net']
+        return feed
+
 
     # define which feed to listen to, and duration
     # and a course of affect response
     async def affect(self):
-        self.routing = True
-        while self.interrupt_bang:
-            rnd_stream = randrange(3)
+        while self.running:
+            # self.routing = True
+            self.interrupt_bang = True
+            print('\t\t\t\t\t\t\t\t=========HIYA - DADDY cycle===========')
 
-            # hold this stream for 1-4 secs, unless interrupt bang
-            end_time = time() + (randrange(1000, 4000) / 1000)
-            while time() < end_time:
+            #
+            while self.interrupt_bang:
+                print('\t\t\t\t\t\t\t\t=========Hello - child cycle 1 ===========')
 
-                if rnd_stream == 0:
-                    self.affect_listen = self.datadict['user_in']
-                elif rnd_stream == 1:
-                    self.affect_listen = self.datadict['rnd_poetry']
-                else:
-                    self.affect_listen = self.datadict['affect_net']
+                # randomly pick an input stream for this cycle
+                rnd_stream = self.affectnames[randrange(3)]
+                if self.affect_logging:
+                    print(rnd_stream)
 
-            # # hold this stream for 1-4 secs, unless interrupt bang
-            # end_time = time() + (randrange(1000, 4000) / 1000)
-            # while time() < end_time:
-                self.datadict['master_move_output'] = self.affect_listen
-                if self.streaming_logging:
-                    print(f'master move output = {self.affect_listen}')
-                # hold until end of loop, major affect_bang, or medium routing change
-                if not self.interrupt_bang or not self.routing:
+                # hold this stream for 1-4 secs, unless interrupt bang
+                end_time = time() + (randrange(1000, 4000) / 1000)
+                if self.affect_logging:
+                    print('end time = ', end_time)
+
+                while time() < end_time:
+                    print('\t\t\t\t\t\t\t\t=========Hello - baby cycle 2 ===========')
+
+                    # go get the current value from dict
+                    affect_listen = self.datadict[rnd_stream]
+                    if self.affect_logging:
+                        print('current value =', affect_listen)
+
+                    # make the master output the current value of the stream
+                    self.datadict['master_move_output'] = affect_listen
+                    if self.affect_logging:
+                        print(f'\t\t ==============  master move output = {affect_listen}')
+
+                    # calc affect on behaviour
+                    # if input stream is LOUD then...
+                    if affect_listen > 0.60:
+                        if self.affect_logging:
+                            print('interrupt > HIGH !!!!!!!!!')
+
+                        # A - refill dict with random
+                        self.dict_fill()
+
+                        # B - cause some other processes to trigger
+                        self.interrupt_bang = False
+                        if self.affect_logging:
+                            print('interrupt bang = ', self.interrupt_bang)
+
+                        # wait for a bit then break
+                        await trio.sleep(self.rhythm_rate)
+                        break
+
+                    # if middle loud fill dict with random, all processes norm
+                    elif 0.30 < affect_listen < 0.59:
+                        if self.affect_logging:
+                            print('interrupt MIDDLE -----------')
+                            print('interrupt bang = ', self.interrupt_bang)
+
+                        # fill dict with random
+                        # self.dict_fill()
+
+                        # A break to change routing
+                        break
+
+                    # else, loop:
+                    if self.affect_logging:
+                        print('interrupt LOW_______________')
+                        print('interrupt bang = ', self.interrupt_bang)
+
+                    # and wait for a cycle
                     await trio.sleep(self.rhythm_rate)
-                    break
-                await trio.sleep(self.rhythm_rate)
 
     # --------------------------------------------------
     #
@@ -252,7 +321,7 @@ class AiDataEngine():
             print("parent: connecting to 127.0.0.1:{}".format(self.PORT))
             client_stream = await trio.open_tcp_stream(self.IP_ADDR, self.PORT)
             async with client_stream:
-                self.interrupt_bang = True
+                # self.interrupt_bang = True
                 async with trio.open_nursery() as nursery:
                     # spawning all the nets
                     print("parent: spawning making data ...")
@@ -262,17 +331,9 @@ class AiDataEngine():
                     print("parent: spawning master cog...")
                     nursery.start_soon(self.master_clock)
 
-                    # spawning rhythm gen
-                    print("parent: spawning rhythm generator...")
-                    nursery.start_soon(self.streamer)
-
                     # spawning affect listener
                     print("parent: spawning affect listener...")
                     nursery.start_soon(self.affect)
-
-                    # # spawning poetry gen
-                    # print("parent: spawning rhythm generator live input...")
-                    # nursery.start_soon(self.random_poetry)
 
                     # spawning listening port for user input
                     print("parent: spawning receiver...")
@@ -314,12 +375,13 @@ class AiDataEngine():
     # receives user data from client (typically live audio input)
     async def receiver(self, client_stream):
         print("receiver: started!")
-        async for data in client_stream:
-            load_data = pickle.loads(data)
-            self.datadict['user_in'] = load_data
-            if self.streaming_logging:
-                print("receiver: got data {!r}".format(load_data))
-        print("receiver: connection closed")
+        while self.running:
+            async for data in client_stream:
+                load_data = pickle.loads(data)
+                self.datadict['user_in'] = load_data
+                if self.streaming_logging:
+                    print("receiver: got data {!r}".format(load_data))
+            print("receiver: connection closed")
         sys.exit()
 
     # user change the overall speed of the engine
