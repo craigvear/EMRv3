@@ -1,7 +1,7 @@
 # --------------------------------------------------
 #
 # Embodied AI Engine Prototype v0.10
-# 2021/01/22
+# 2021/01/25
 #
 # © Craig Vear 2020
 # cvear@dmu.ac.uk
@@ -190,39 +190,6 @@ class AiDataEngine():
     #
     # --------------------------------------------------
 
-    # controls master scheduling
-    async def master_clock(self):
-        while self.running:
-            self.interrupt_bang = True
-            loop_dur = randrange(6, 26) * self.global_speed
-            print(f"                 interrupt_listener: started! sleeping now for {loop_dur}...")
-            await trio.sleep(loop_dur)
-
-            # sends a bang that restarts the process ~ refilling the datadict
-            self.interrupt_bang = False
-
-            # refill dict with random
-            self.dict_fill()
-            print(" ###################   restarting ######################")
-            await trio.sleep(self.rhythm_rate)
-
-    # async def streamer(self):
-    #     # responds to affect streamer
-    #     # when restarts after interrupt bang fill dict with rnd
-    #     self.interrupt_bang = True
-    #     while self.interrupt_bang:
-    #         # if > 60 trigger interrupt bang, break and restart all processes
-    #         if self.affect_listen > 0.60:
-    #             self.dict_fill()
-    #             self.interrupt_bang = False
-    #         # if 30 <> 60 fill dict with random, all processes norm
-    #         elif 0.30 < self.affect_listen < 0.59:
-    #             self.dict_fill()
-    #             self.routing = False
-    #         # else slow the loop down
-    #         else:
-    #             await trio.sleep(self.rhythm_rate)
-
     def which_feed(self):
         rnd_stream = randrange(3)
 
@@ -239,14 +206,31 @@ class AiDataEngine():
     # define which feed to listen to, and duration
     # and a course of affect response
     async def affect(self):
+        # daddy cycle = is the master running on?
         while self.running:
-            # self.routing = True
-            self.interrupt_bang = True
-            print('\t\t\t\t\t\t\t\t=========HIYA - DADDY cycle===========')
+            if self.affect_logging:
+                print('\t\t\t\t\t\t\t\t=========HIYA - DADDY cycle===========')
 
-            #
-            while self.interrupt_bang:
-                print('\t\t\t\t\t\t\t\t=========Hello - child cycle 1 ===========')
+            # flag for breaking on big affect signal
+            self.interrupt_bang = True
+
+            # calc master cycle before a change
+            master_cycle = randrange(6, 26) * self.global_speed
+            loop_dur = time() + master_cycle
+            if self.affect_logging:
+                print(f"                 interrupt_listener: started! sleeping now for {loop_dur}...")
+
+            # refill the dicts?????
+            self.dict_fill()
+
+            # child cycle - waiting for interrupt  from master clock
+            while time() < loop_dur:
+                if self.affect_logging:
+                        print('\t\t\t\t\t\t\t\t=========Hello - child cycle 1 ===========')
+
+                # if a major break out then go to Daddy cycle
+                if not self.interrupt_bang:
+                    break
 
                 # randomly pick an input stream for this cycle
                 rnd_stream = self.affectnames[randrange(3)]
@@ -258,8 +242,10 @@ class AiDataEngine():
                 if self.affect_logging:
                     print('end time = ', end_time)
 
+                # baby cycle 2 - own time loops
                 while time() < end_time:
-                    print('\t\t\t\t\t\t\t\t=========Hello - baby cycle 2 ===========')
+                    if self.affect_logging:
+                        print('\t\t\t\t\t\t\t\t=========Hello - baby cycle 2 ===========')
 
                     # go get the current value from dict
                     affect_listen = self.datadict[rnd_stream]
@@ -272,7 +258,7 @@ class AiDataEngine():
                         print(f'\t\t ==============  master move output = {affect_listen}')
 
                     # calc affect on behaviour
-                    # if input stream is LOUD then...
+                    # if input stream is LOUD then smash a random fill and break out to Daddy cycle...
                     if affect_listen > 0.60:
                         if self.affect_logging:
                             print('interrupt > HIGH !!!!!!!!!')
@@ -281,12 +267,11 @@ class AiDataEngine():
                         self.dict_fill()
 
                         # B - cause some other processes to trigger
-                        self.interrupt_bang = False
+                        # self.interrupt_bang = False
                         if self.affect_logging:
                             print('interrupt bang = ', self.interrupt_bang)
 
-                        # wait for a bit then break
-                        await trio.sleep(self.rhythm_rate)
+
                         break
 
                     # if middle loud fill dict with random, all processes norm
@@ -295,16 +280,13 @@ class AiDataEngine():
                             print('interrupt MIDDLE -----------')
                             print('interrupt bang = ', self.interrupt_bang)
 
-                        # fill dict with random
-                        # self.dict_fill()
+                        # refill dict with random
+                        self.dict_fill()
 
-                        # A break to change routing
-                        break
-
-                    # else, loop:
-                    if self.affect_logging:
-                        print('interrupt LOW_______________')
-                        print('interrupt bang = ', self.interrupt_bang)
+                    elif affect_listen <= 0.30:
+                        if self.affect_logging:
+                            print('interrupt LOW_______________')
+                            print('interrupt bang = ', self.interrupt_bang)
 
                     # and wait for a cycle
                     await trio.sleep(self.rhythm_rate)
@@ -323,16 +305,12 @@ class AiDataEngine():
             async with client_stream:
                 # self.interrupt_bang = True
                 async with trio.open_nursery() as nursery:
-                    # spawning all the nets
+                    # spawning all the data making
                     print("parent: spawning making data ...")
                     nursery.start_soon(self.make_data)
 
-                    # spawning scheduling methods
-                    print("parent: spawning master cog...")
-                    nursery.start_soon(self.master_clock)
-
-                    # spawning affect listener
-                    print("parent: spawning affect listener...")
+                    # spawning affect listener and master clocks
+                    print("parent: spawning affect listener and clocks ...")
                     nursery.start_soon(self.affect)
 
                     # spawning listening port for user input
@@ -384,6 +362,7 @@ class AiDataEngine():
             print("receiver: connection closed")
         sys.exit()
 
+# todo - embed user vars in receiver (e.g. if load_data = )
     # user change the overall speed of the engine
     def speed(self, user_speed):
         self.global_speed = user_speed
