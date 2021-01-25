@@ -201,11 +201,6 @@ class AiDataEngine():
     #
     # --------------------------------------------------
 
-    def which_feed(self):
-        rnd_stream = randrange(4)
-        feed = self.datadict[self.affectnames[rnd_stream]]
-        return feed
-
     # define which feed to listen to, and duration
     # and a course of affect response
     async def affect(self):
@@ -236,7 +231,8 @@ class AiDataEngine():
                     break
 
                 # randomly pick an input stream for this cycle
-                rnd_stream = self.affectnames[randrange(3)]
+                rnd_stream = self.affectnames[randrange(4)]
+                print(rnd_stream)
                 if self.affect_logging:
                     print(rnd_stream)
 
