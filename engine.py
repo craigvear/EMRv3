@@ -87,18 +87,22 @@ class AiDataEngine():
                          'user_in': 0,
                          'rnd_poetry': 0,
                          'rhythm_rnn': 0,
-                         'affect_net': 0}
+                         'affect_net': 0,
+                         'self_awareness': 0}
 
         # name list for nets
         self.netnames = ['move_rnn',
                          'affect_rnn',
                          'move_affect_conv2',
-                         'affect_move_conv2']
+                         'affect_move_conv2',
+                         'self_awareness',  # Net name for self-awareness
+                         'master_move_output']  # input for self-awareness
 
         # names for affect listening
         self.affectnames = ['user_in',
                             'rnd_poetry',
-                            'affect_net']
+                            'affect_net',
+                            'self_awareness']
 
         self.rhythm_rate = 0.1
         self.affect_listen = 0
@@ -113,12 +117,13 @@ class AiDataEngine():
         self.affect_net = AffectRNN()
         self.move_affect_net = MoveAffectCONV2()
         self.affect_move_net = AffectMoveCONV2()
+        self.affect_perception = MoveAffectCONV2()
 
         # logging on/off switches
         self.net_logging = False
         self.master_logging = False
         self.streaming_logging = False
-        self.affect_logging = True
+        self.affect_logging = False
 
     # --------------------------------------------------
     #
@@ -129,12 +134,11 @@ class AiDataEngine():
     # makes a prediction for a given net and defined input var
     async def make_data(self):
         while self.running:
-            # while self.interrupt_bang:
             # get input vars from dict (NB not always self)
-            in_val1 = self.get_in_val(0)
-            in_val2 = self.get_in_val(1)
-            in_val3 = self.get_in_val(2)
-            in_val4 = self.get_in_val(1)
+            in_val1 = self.get_in_val(0) # move RNN as input
+            in_val2 = self.get_in_val(1) # affect RNN as input
+            in_val3 = self.get_in_val(2) # move - affect as input
+            in_val4 = self.get_in_val(1) #  affect RNN as input
 
             # send in vals to net object for prediction
             pred1 = self.move_net.predict(in_val1)
@@ -142,17 +146,23 @@ class AiDataEngine():
             pred3 = self.move_affect_net.predict(in_val3)
             pred4 = self.affect_move_net.predict(in_val4)
 
+            # special case for self awareness stream
+            self_aware_input = self.get_in_val(5) # main movement as input
+            self_aware_pred = self.affect_perception.predict(self_aware_input)
+
             if self.net_logging:
                 print(f"  'move_rnn' in: {in_val1} predicted {pred1}")
                 print(f"  'affect_rnn' in: {in_val2} predicted {pred2}")
                 print(f"  move_affect_conv2' in: {in_val3} predicted {pred3}")
                 print(f"  'affect_move_conv2' in: {in_val4} predicted {pred4}")
+                print(f"  'self_awareness' in: {self_aware_input} predicted {self_aware_pred}")
 
             # put predictions back into the dicts and master
             self.put_pred(0, pred1)
             self.put_pred(1, pred2)
             self.put_pred(2, pred3)
             self.put_pred(3, pred4)
+            self.put_pred(4, self_aware_pred)
 
             # outputs a stream of random poetry
             rnd_poetry = random()
@@ -171,6 +181,7 @@ class AiDataEngine():
 
     # function to put prediction value from net into dictionary
     def put_pred(self, which_dict, pred):
+        # randomly chooses one of te 4 predicted outputs
         out_pred_val = pred[0][randrange(4)]
         if self.master_logging:
             print(f"out pred val == {out_pred_val},   master move output == {self.datadict['master_move_output']}")
@@ -191,17 +202,24 @@ class AiDataEngine():
     # --------------------------------------------------
 
     def which_feed(self):
-        rnd_stream = randrange(3)
+        rnd_stream = randrange(4)
 
-        # todo - this needs to be a list
-        if rnd_stream == 0:
-            feed = self.datadict['user_in']
-        elif rnd_stream == 1:
-            feed = self.datadict['rnd_poetry']
-        else:
-            feed = self.datadict['affect_net']
+        feed = self.datadict[self.affectnames[rnd_stream]]
+
+        # # todo - this needs to be a list
+        # if rnd_stream == 0:
+        #     feed = self.datadict['user_in']
+        # elif rnd_stream == 1:
+        #     feed = self.datadict['rnd_poetry']
+        # elif rnd_stream == 3:
+        #     feed = self.datadict['affect_net']
+        # else:
+        #     feed = self.datadict['self_awareness']
         return feed
 
+
+    def self_awareness(self):
+        pass
 
     # define which feed to listen to, and duration
     # and a course of affect response
@@ -254,8 +272,7 @@ class AiDataEngine():
 
                     # make the master output the current value of the stream
                     self.datadict['master_move_output'] = affect_listen
-                    if self.affect_logging:
-                        print(f'\t\t ==============  master move output = {affect_listen}')
+                    print(f'\t\t ==============  master move output = {affect_listen}')
 
                     # calc affect on behaviour
                     # if input stream is LOUD then smash a random fill and break out to Daddy cycle...
@@ -271,6 +288,7 @@ class AiDataEngine():
                         if self.affect_logging:
                             print('interrupt bang = ', self.interrupt_bang)
 
+                        # C break out of this loop, and next (cos of flag)
                         break
 
                     # if middle loud fill dict with random, all processes norm
@@ -320,8 +338,6 @@ class AiDataEngine():
                     print("parent: spawning sender...")
                     nursery.start_soon(self.sender, client_stream)
 
-# todo - self affect percpetion!!!
-
     # --------------------------------------------------
     #
     # user accessible methods
@@ -337,10 +353,12 @@ class AiDataEngine():
                     'individual NN outs':
                         {'move RNN': self.datadict.get('move_rnn'),
                          'affect RNN': self.datadict.get('affect_rnn'),
-                             'move_affect_conv2': self.datadict.get('move_affect_conv2'),
-                             'affect_move_conv2': self.datadict.get('affect_move_conv2')
+                         'move_affect_conv2': self.datadict.get('move_affect_conv2'),
+                         'affect_move_conv2': self.datadict.get('affect_move_conv2'),
+                         'self_awareness': self.datadict.get('self_awareness')
                          }
                     }
+
             # serialise dict into json for Tx
             serial_data = pickle.dumps(data, -1)
             if self.streaming_logging:
