@@ -266,11 +266,10 @@ class AiDataEngine():
                         # A - refill dict with random
                         self.dict_fill()
 
-                        # B - cause some other processes to trigger
-                        # self.interrupt_bang = False
+                        # B - jumps out of this loop into daddy
+                        self.interrupt_bang = False
                         if self.affect_logging:
                             print('interrupt bang = ', self.interrupt_bang)
-
 
                         break
 
