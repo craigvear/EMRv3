@@ -203,23 +203,8 @@ class AiDataEngine():
 
     def which_feed(self):
         rnd_stream = randrange(4)
-
         feed = self.datadict[self.affectnames[rnd_stream]]
-
-        # # todo - this needs to be a list
-        # if rnd_stream == 0:
-        #     feed = self.datadict['user_in']
-        # elif rnd_stream == 1:
-        #     feed = self.datadict['rnd_poetry']
-        # elif rnd_stream == 3:
-        #     feed = self.datadict['affect_net']
-        # else:
-        #     feed = self.datadict['self_awareness']
         return feed
-
-
-    def self_awareness(self):
-        pass
 
     # define which feed to listen to, and duration
     # and a course of affect response
