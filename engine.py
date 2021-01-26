@@ -74,9 +74,10 @@ class AiDataEngine():
     def __init__(self, speed=1):
         self.interrupt_bang = False
         self.running = False
-        # self.routing = False
         self.PORT = 65432
         self.IP_ADDR = "127.0.0.1"
+        self.global_speed = speed
+
 
         # make a default dict for the engine
         self.datadict = {'move_rnn': 0,
@@ -106,7 +107,6 @@ class AiDataEngine():
 
         self.rhythm_rate = 0.1
         self.affect_listen = 0
-        self.global_speed = speed
 
         # fill with random values
         self.dict_fill()
@@ -134,11 +134,16 @@ class AiDataEngine():
     # makes a prediction for a given net and defined input var
     async def make_data(self):
         while self.running:
+
+            # calc rhythmic intensity based on self-awareness factor & global speed
+            intensity = self.datadict.get('self_awareness')
+            self.rhythm_rate = (self.rhythm_rate * intensity) * self.global_speed
+
             # get input vars from dict (NB not always self)
             in_val1 = self.get_in_val(0) # move RNN as input
             in_val2 = self.get_in_val(1) # affect RNN as input
             in_val3 = self.get_in_val(2) # move - affect as input
-            in_val4 = self.get_in_val(1) #  affect RNN as input
+            in_val4 = self.get_in_val(1) # affect RNN as input
 
             # send in vals to net object for prediction
             pred1 = self.move_net.predict(in_val1)
@@ -330,7 +335,7 @@ class AiDataEngine():
         print("sender: started!")
         while self.running:
             data = {'e-AI output': self.datadict.get('master_move_output'),
-                    'intensity': 0,
+                    'intensity/rhythm': self.datadict.get('self_awareness'),
                     'individual NN outs':
                         {'move RNN': self.datadict.get('move_rnn'),
                          'affect RNN': self.datadict.get('affect_rnn'),
