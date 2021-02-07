@@ -1,3 +1,6 @@
+"""main server script
+will sit onboard bobot and operate as Nebula --- its dynamic soul"""
+
 # --------------------------------------------------
 #
 # Embodied AI Engine Prototype v0.10
@@ -236,10 +239,10 @@ class AiDataEngine():
                     break
 
                 # randomly pick an input stream for this cycle
-                rnd_stream = self.affectnames[randrange(4)]
-                print(rnd_stream)
+                self.rnd_stream = self.affectnames[randrange(4)]
+                print(self.rnd_stream)
                 if self.affect_logging:
-                    print(rnd_stream)
+                    print(self.rnd_stream)
 
                 # hold this stream for 1-4 secs, unless interrupt bang
                 end_time = time() + (randrange(1000, 4000) / 1000)
@@ -252,7 +255,7 @@ class AiDataEngine():
                         print('\t\t\t\t\t\t\t\t=========Hello - baby cycle 2 ===========')
 
                     # go get the current value from dict
-                    affect_listen = self.datadict[rnd_stream]
+                    affect_listen = self.datadict[self.rnd_stream]
                     if self.affect_logging:
                         print('current value =', affect_listen)
 
@@ -336,6 +339,7 @@ class AiDataEngine():
         while self.running:
             data = {'e-AI output': self.datadict.get('master_move_output'),
                     'intensity/rhythm': self.datadict.get('self_awareness'),
+                    'affect stream': self.rnd_stream,
                     'individual NN outs':
                         {'move RNN': self.datadict.get('move_rnn'),
                          'affect RNN': self.datadict.get('affect_rnn'),

@@ -1,6 +1,28 @@
+"""main client script
+controls microphone stream and organise all audio responses"""
+
 import socket
 import pickle
 from random import random
+import pyaudio
+import numpy as np
+
+
+def snd_listen(self):
+    CHUNK = 2 ** 11
+    RATE = 44100
+    p = pyaudio.PyAudio()
+    stream = p.open(format=pyaudio.paInt16, channels=1, rate=RATE, input=True,
+                    frames_per_buffer=CHUNK)
+    while self.running:
+        data = np.frombuffer(stream.read(CHUNK), dtype=np.int16)
+        self.peak = np.average(np.abs(data)) * 2
+        # bars = "#" * int(50 * self.peak / 2 ** 16)
+        # print("%05d %s" % (self.peak, bars))
+    stream.stop_stream()
+    stream.close()
+    p.terminate()
+
 
 HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
 PORT = 65432
@@ -22,3 +44,5 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             # if not data:
             #     break
             conn.sendall(send_rnd)
+
+
