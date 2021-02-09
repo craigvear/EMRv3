@@ -80,6 +80,7 @@ class AiDataEngine():
         self.PORT = 65432
         self.IP_ADDR = "127.0.0.1"
         self.global_speed = speed
+        self.rnd_stream = 0
 
 
         # make a default dict for the engine
