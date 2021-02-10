@@ -88,12 +88,14 @@ class AiDataEngine():
                          'affect_rnn': 0,
                          'move_affect_conv2': 0,
                          'affect_move_conv2': 0,
-                         'master_move_output': 0,
+                         'master_output': 0,
                          'user_in': 0,
                          'rnd_poetry': 0,
                          'rhythm_rnn': 0,
                          'affect_net': 0,
-                         'self_awareness': 0}
+                         'self_awareness': 0,
+                         'affect_decision': 0,
+                         'rhythm_rate': 0.1}
 
         # name list for nets
         self.netnames = ['move_rnn',
@@ -101,7 +103,7 @@ class AiDataEngine():
                          'move_affect_conv2',
                          'affect_move_conv2',
                          'self_awareness',  # Net name for self-awareness
-                         'master_move_output']  # input for self-awareness
+                         'master_output']  # input for self-awareness
 
         # names for affect listening
         self.affectnames = ['user_in',
@@ -142,6 +144,7 @@ class AiDataEngine():
             # calc rhythmic intensity based on self-awareness factor & global speed
             intensity = self.datadict.get('self_awareness')
             self.rhythm_rate = (self.rhythm_rate * intensity) * self.global_speed
+            self.datadict['rhythm_rate'] = self.rhythm_rate
 
             # get input vars from dict (NB not always self)
             in_val1 = self.get_in_val(0) # move RNN as input
@@ -193,10 +196,10 @@ class AiDataEngine():
         # randomly chooses one of te 4 predicted outputs
         out_pred_val = pred[0][randrange(4)]
         if self.master_logging:
-            print(f"out pred val == {out_pred_val},   master move output == {self.datadict['master_move_output']}")
+            print(f"out pred val == {out_pred_val},   master move output == {self.datadict['master_output']}")
         # save to data dict and master move out ONLY 1st data
         self.datadict[self.netnames[which_dict]] = out_pred_val
-        self.datadict['master_move_output'] = out_pred_val
+        self.datadict['master_output'] = out_pred_val
 
     # fills the dictionary with rnd values for each key of data dictionary
     def dict_fill(self):
@@ -240,7 +243,9 @@ class AiDataEngine():
                     break
 
                 # randomly pick an input stream for this cycle
-                self.rnd_stream = self.affectnames[randrange(4)]
+                rnd = randrange(4)
+                self.rnd_stream = self.affectnames[rnd]
+                self.datadict['affect_decision'] = rnd
                 print(self.rnd_stream)
                 if self.affect_logging:
                     print(self.rnd_stream)
@@ -261,7 +266,7 @@ class AiDataEngine():
                         print('current value =', affect_listen)
 
                     # make the master output the current value of the stream
-                    self.datadict['master_move_output'] = affect_listen
+                    self.datadict['master_output'] = affect_listen
                     print(f'\t\t ==============  master move output = {affect_listen}')
 
                     # calc affect on behaviour
@@ -338,22 +343,22 @@ class AiDataEngine():
     async def sender(self, client_stream):
         print("sender: started!")
         while self.running:
-            data = {'e-AI output': self.datadict.get('master_move_output'),
-                    'intensity/rhythm': self.datadict.get('self_awareness'),
-                    'affect stream': self.rnd_stream,
-                    'individual NN outs':
-                        {'move RNN': self.datadict.get('move_rnn'),
-                         'affect RNN': self.datadict.get('affect_rnn'),
-                         'move_affect_conv2': self.datadict.get('move_affect_conv2'),
-                         'affect_move_conv2': self.datadict.get('affect_move_conv2'),
-                         'self_awareness': self.datadict.get('self_awareness')
-                         }
-                    }
+            # data = {'master_AI_output': self.datadict.get('master_output'),
+            #         'intensity/rhythm': self.datadict.get('self_awareness'),
+            #         'affect stream': self.rnd_stream,
+            #         'individual NN outs':
+            #             {'move RNN': self.datadict.get('move_rnn'),
+            #              'affect RNN': self.datadict.get('affect_rnn'),
+            #              'move_affect_conv2': self.datadict.get('move_affect_conv2'),
+            #              'affect_move_conv2': self.datadict.get('affect_move_conv2'),
+            #              'self_awareness': self.datadict.get('self_awareness')
+            #              }
+            #         }
 
             # serialise dict into json for Tx
-            serial_data = pickle.dumps(data, -1)
+            serial_data = pickle.dumps(self.datadict, -1)
             if self.streaming_logging:
-                print("sender: sending {!r}".format(data))
+                print("sender: sending {!r}".format(serial_data))
             #  & send
             await client_stream.send_all(serial_data)
             await trio.sleep(self.rhythm_rate)
@@ -364,20 +369,22 @@ class AiDataEngine():
         while self.running:
             async for data in client_stream:
                 load_data = pickle.loads(data)
-                self.datadict['user_in'] = load_data
+                self.parse_got_dict(load_data)
+
+                # self.datadict['user_in'] = load_data['mic_level']
                 if self.streaming_logging:
                     print("receiver: got data {!r}".format(load_data))
             print("receiver: connection closed")
         sys.exit()
 
-# todo - embed user vars in receiver (e.g. if load_data = )
-    # user change the overall speed of the engine
-    def speed(self, user_speed):
-        self.global_speed = user_speed
+    def parse_got_dict(self, got_dict):
+        self.datadict['user_in'] = got_dict['mic_level']
 
-    # user change tempo of outputs and parsing
-    def tempo(self, user_tempo):
-        self.rhythm_rate = user_tempo
+        # user change the overall speed of the engine
+        self.global_speed = got_dict['speed']
+
+        # user change tempo of outputs and parsing
+        self.rhythm_rate = got_dict['tempo']
 
     # stop start methods
     def go(self):
