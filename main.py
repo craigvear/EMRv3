@@ -23,8 +23,6 @@ class Client:
                                   rate=self.RATE,
                                   input=True,
                                   frames_per_buffer=self.CHUNK)
-        self.peak = 0
-        self.master_AI_data = 0
 
         # instantiate sound object
         self.snd = SoundBot()
@@ -32,7 +30,7 @@ class Client:
         # build send data dict
         self.send_data_dict = {'mic_level': 0,
                                'speed': 1,
-                               'tempo': 1
+                               'tempo': 0.1
                                }
 
     def snd_listen(self):
