@@ -7,9 +7,10 @@ class SoundBot(): # smooths the data as a thread class
         # audio source variables
         audio_file = 'data/misha_lacy_off_minor.wav'
         self.audio = AudioSegment.from_wav(audio_file)
-        self.audio_len = self.audio.duration_seconds
-        print("SoundBoting, baby")
-
+        audio_len = self.audio.duration_seconds
+        self.audio_len_ms = audio_len * 1000
+        print('SoundBoting, baby')
+        print(f'audio length = {audio_len} seconds; = {self.audio_len_ms} ms')
 
     # def robot(self):
     #     # calculate derivation in data for each wheel
@@ -18,7 +19,6 @@ class SoundBot(): # smooths the data as a thread class
     #     # robot.set_motors(bot_move_left, bot_move_right)
     #     # print('moving robot', bot_move_left, bot_move_right)
     #     self.sound(bot_move_left, bot_move_right)
-
 
     def play_sound(self, AI_data, duration):
 
@@ -32,13 +32,14 @@ class SoundBot(): # smooths the data as a thread class
         # concats slicing data
         audio_slice = self.audio[starting_pos: end_pos_ms]
 
+        print(f'SoundBot: audio params = {starting_pos}: {end_pos_ms}: {duration}')
+
         # plays audio
         play(audio_slice)
 
     def calc_start_point(self, incoming):
         # NewValue = (((OldValue - OldMin) * (NewMax - NewMin)) / (OldMax - OldMin)) + NewMin
-        return (((incoming - 0) * ((self.audio_len * 1000) - 0)) / (1.0 - 0)) + 0
-
+        return (((incoming - 0) * ((self.audio_len_ms) - 0)) / (1.0 - 0)) + 0
 
 if __name__ == '__main__':
     snd = SoundBot()
