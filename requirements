@@ -1,0 +1,6 @@
+tensorflow.keras.models
+trio
+numpy
+pyaudio
+pydub
+simpleaudio
