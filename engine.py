@@ -390,6 +390,7 @@ class AiDataEngine():
     def go(self):
         self.running = True
         trio.run(self.flywheel)
+        print('I got here daddy')
 
     def quit(self):
         self.running = False

@@ -1,12 +1,17 @@
 from pydub import AudioSegment
 from pydub.playback import _play_with_simpleaudio as play
 
+# todo: pd sound player!!! as tab~
 
-class SoundBot(): # smooths the data as a thread class
+
+class SoundBot: # smooths the data as a thread class
     def __init__(self):
+        # todo: if channel == 'left':
+
         # audio source variables
         audio_file = 'data/misha_lacy_off_minor.wav'
         self.audio = AudioSegment.from_wav(audio_file)
+        # self.audio.pan(pan)
         audio_len = self.audio.duration_seconds
         self.audio_len_ms = audio_len * 1000
         print('SoundBoting, baby')
