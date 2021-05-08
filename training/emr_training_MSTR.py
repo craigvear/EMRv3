@@ -9,18 +9,21 @@ dataset_dir = glob('dataset/*.json')
 
 # create array from JSON and pass to
 
-def create_array(location, feature):
+def create_array(location, feature, subfeature = None, subsubfeature = None):
     print(f'creating array for {feature}, location {location}')
     # reset temp array
     temp_array = []
 
     # for each JSON set in dataset parse feature and add to temp array
-    for set in dataset_dir:
-        df = read_json(set)
+    for i_set in dataset_dir:
+        df = read_json(i_set)
 
         # parse the values for each line of set
         for stuff in df.values:
-            temp_array.append(stuff[location][feature])
+            if subfeature == None:
+                temp_array.append(stuff[location][feature])
+            else:
+                temp_array.append(stuff[location][feature][subfeature][subsubfeature])
 
     return temp_array
 
@@ -28,29 +31,26 @@ def create_array(location, feature):
 def main():
     # generate working arrays
     bitalino_array = create_array(4, 'bitalino')
-    nose_array = create_array(4, 'skeleton.nose.x')
-
-
+    nose_array = create_array(4, 'skeleton', 'nose', 'x')
 
     # instantiate training class objects
     conv = CONV.Training()
     rnn = RNN.Training()
 
     # go get 'em cowgirl
+    print('starting to train')
 
     # 1st RNN = affect in(y) - move out(x)
-    # x_train = conv.prep_sets(14) # skeleton.nose.x
-    # y_train = conv.prep_sets(9) # bitalino
     conv.train(nose_array, bitalino_array, 'affect-move')
 
     # 2nd RNN = move in(y) - affect out(x)
     conv.train(bitalino_array, nose_array, 'move-affect')
 
     # 3 skeleton (nose only)
-    rnn.prep_sets('skeleton_data.nose.x', 14)
+    rnn.train(nose_array, 'skeleton_data.nose.x')
 
     # 4 bitalino
-    rnn.prep_sets('bitalino', 9)
+    rnn.train(bitalino_array, 'bitalino')
 
 if __name__ == "__main__":
     main()

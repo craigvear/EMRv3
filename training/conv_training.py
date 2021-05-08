@@ -40,33 +40,28 @@ class Training():
           # self.df.columns = self.col_name
 
     def prep_sets(self, raw_set):
-          # # self.feature = raw_set
-          # my_df = self.df(raw_set)
-          #
-          # # drop the rows that are NaN
-          # my_df = my_df.dropna()
-          #
-          # # delete rows that are noisy
-          # my_df = my_df[my_df > 0]
-          #
-          # # reset index and make training set from only the feature I want
-          # my_df = my_df.reset_index(drop=True)
-          # dataset = my_df.iloc[:, self.feature:self.feature+1].values
+        # covert raw set into a pd fdataframe
+        my_df = pd.DataFrame(raw_set)
+        # drop the rows that are NaN
+        my_df = my_df.dropna()
 
+        # reset index and make training set from only the feature I want
+        my_df = my_df.reset_index(drop=True)
+        dataset = my_df.values
 
-          # split into train and test sets
-          train_size = int(len(raw_set) * 0.67) # 67% Train
-          test_size = len(raw_set) - train_size
-          training_set, testing_set = raw_set[0:train_size, :], raw_set[train_size:len(raw_set), :]
+        # split into train and test sets
+        train_size = int(len(raw_set) * 0.67) # 67% Train
+        test_size = len(raw_set) - train_size
+        training_set, testing_set = raw_set[0:train_size, :], raw_set[train_size:len(raw_set), :]
 
-          # Feature Scaling
-          sc = preprocessing.MinMaxScaler(feature_range=(0, 1))
-          training_set_scaled = sc.fit_transform(training_set)
-          print (training_set_scaled)
+        # Feature Scaling
+        sc = preprocessing.MinMaxScaler(feature_range=(0, 1))
+        training_set_scaled = sc.fit_transform(training_set)
+        print (training_set_scaled)
 
-          return training_set_scaled
+        return training_set_scaled
 
-    def train(self, raw_x, raw_y):
+    def train(self, raw_x, raw_y, label):
 
         self.scaled_x = self.prep_sets(raw_x)
         self.scaled_y = self.prep_sets(raw_y)
@@ -113,16 +108,16 @@ class Training():
         regressor.save(f'models/EMR-3_conv2D_{label}.h5')
         print (f'saved_conv2D {label}')
 
-
-if __name__ == '__main__':
-    rnn = Training()
-
-    # 1st RNN = affect in(y) - move out(x)
-    x_train = rnn.prep_sets(14)
-    y_train = rnn.prep_sets(9)
-    rnn.train(x_train, y_train, 'affect-move')
-
-    # 2nd RNN = move in(y) - affect out(x)
-    # x_train = rnn.prep_sets(14)
-    # y_train = rnn.prep_sets(9)
-    rnn.train(y_train, x_train, 'move-affect')
+#
+# if __name__ == '__main__':
+#     rnn = Training()
+#
+#     # 1st RNN = affect in(y) - move out(x)
+#     x_train = rnn.prep_sets(14)
+#     y_train = rnn.prep_sets(9)
+#     rnn.train(x_train, y_train, 'affect-move')
+#
+#     # 2nd RNN = move in(y) - affect out(x)
+#     # x_train = rnn.prep_sets(14)
+#     # y_train = rnn.prep_sets(9)
+#     rnn.train(y_train, x_train, 'move-affect')
