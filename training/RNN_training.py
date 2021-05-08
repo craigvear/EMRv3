@@ -34,7 +34,7 @@ class Training():
         # Feature Scaling
         sc = preprocessing.MinMaxScaler(feature_range=(0, 1))
         training_set_scaled = sc.fit_transform(training_set)
-        print (training_set_scaled)
+        # print (training_set_scaled)
 
         return training_set_scaled
 
