@@ -66,7 +66,7 @@ class Training():
         regressor.add(Dropout(0.2))
         regressor.add(Dense(units = self.n_future,activation='linear'))
         regressor.compile(optimizer='adam', loss='mean_squared_error',metrics=['acc'])
-        regressor.fit(x_train, y_train, epochs=2000, batch_size=32, verbose=1 )
+        regressor.fit(x_train, y_train, epochs=200, batch_size=32, verbose=1 )
 
 
         # # reshape testing set
