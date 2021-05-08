@@ -10,7 +10,7 @@ dataset_dir = glob('dataset/*.json')
 # create array from JSON and pass to
 
 def create_array(location, feature):
-
+    print(f'creating array for {feature}, location {location}')
     # reset temp array
     temp_array = []
 
@@ -39,12 +39,12 @@ def main():
     # go get 'em cowgirl
 
     # 1st RNN = affect in(y) - move out(x)
-    x_train = conv.prep_sets(14) # skeleton.nose.x
-    y_train = conv.prep_sets(9) # bitalino
-    conv.train(x_train, y_train, 'affect-move')
+    # x_train = conv.prep_sets(14) # skeleton.nose.x
+    # y_train = conv.prep_sets(9) # bitalino
+    conv.train(nose_array, bitalino_array, 'affect-move')
 
     # 2nd RNN = move in(y) - affect out(x)
-    conv.train(y_train, x_train, 'move-affect')
+    conv.train(bitalino_array, nose_array, 'move-affect')
 
     # 3 skeleton (nose only)
     rnn.prep_sets('skeleton_data.nose.x', 14)

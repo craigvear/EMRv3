@@ -10,38 +10,9 @@ class Training():
               self.n_future = 4  # next 4 bits of data
               self.n_past = 30  # Past 30 bits
 
-              # load the dataset from csv into panda dataframe
-              self.df = pd.read_csv(r'test_craig_vear_20201124.csv', header=0)
 
-              # name the columns for easy filtering
-              col_name = ['_id', 'session_id', 'session_name', 'timestamp', 'delta_time',
-                     'audio_file', 'mic_volume', 'video_file', 'backing_track_file',
-                     'bitalino', 'brainbit.eeg-T3', 'brainbit.eeg-T4', 'brainbit.eeg-O1',
-                     'brainbit.eeg-O2', 'skeleton_data.nose.x', 'skeleton_data.nose.y',
-                     'skeleton_data.nose.confidence', 'skeleton_data.neck.x',
-                     'skeleton_data.neck.y', 'skeleton_data.neck.confidence',
-                     'skeleton_data.r_shoudler.x', 'skeleton_data.r_shoudler.y',
-                     'skeleton_data.r_shoudler.confidence', 'skeleton_data.r_elbow.x',
-                     'skeleton_data.r_elbow.y', 'skeleton_data.r_elbow.confidence',
-                     'skeleton_data.r_wrist.x', 'skeleton_data.r_wrist.y',
-                     'skeleton_data.r_wrist.confidence', 'skeleton_data.l_shoudler.x',
-                     'skeleton_data.l_shoudler.y', 'skeleton_data.l_shoudler.confidence',
-                     'skeleton_data.l_elbow.x', 'skeleton_data.l_elbow.y',
-                     'skeleton_data.l_elbow.confidence', 'skeleton_data.l_wrist.x',
-                     'skeleton_data.l_wrist.y', 'skeleton_data.l_wrist.confidence',
-                     'skeleton_data.r_eye.x', 'skeleton_data.r_eye.y',
-                     'skeleton_data.r_eye.confidence', 'skeleton_data.l_eye.x',
-                     'skeleton_data.l_eye.y', 'skeleton_data.l_eye.confidence',
-                     'skeleton_data.r_ear.x', 'skeleton_data.r_ear.y',
-                     'skeleton_data.r_ear.confidence', 'skeleton_data.l_ear.x',
-                     'skeleton_data.l_ear.y', 'skeleton_data.l_ear.confidence', 'flow_level',
-                     'date', 'last_update']
-
-              # overlayer column names to df columns
-              self.df.columns = col_name
-
-       def prep_sets(self, feature, location):
-              self.feature = feature
+       def prep_sets(self, pre_set):
+              self.feature = pre_set
               my_df = self.df
               # drop the rows that are NaN
               my_df = my_df.dropna(subset=[self.feature])
@@ -62,6 +33,10 @@ class Training():
               sc = preprocessing.MinMaxScaler(feature_range=(0, 1))
               training_set_scaled = sc.fit_transform(training_set)
               print (training_set_scaled)
+
+       def train(self, pre_set):
+              training_set_scaled = self.prep_sets()
+
 
               # create training sets ready for ML
               x_train = []
