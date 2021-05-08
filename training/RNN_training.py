@@ -12,23 +12,24 @@ class Training():
 
 
     def prep_sets(self, raw_set):
-
-        # covert raw set into a pd fdataframe
+        # covert raw set into a pd dataframe
         my_df = pd.DataFrame(raw_set)
-        # drop the rows that are NaN
-        my_df = my_df.dropna()
 
-        # # delete rows that are noisy
-        # my_df = my_df[my_df > 0]
+        # add column name
+        my_df.columns = ['feature']
+
+        # drop the rows that are NaN or < 0
+        my_df = my_df.dropna()
+        my_df = my_df[my_df['feature'] > 0]
 
         # reset index and make training set from only the feature I want
         my_df = my_df.reset_index(drop=True)
         dataset = my_df.values
 
         # split into train and test sets
-        train_size = int(len(raw_set) * 0.67) # 67% Train
-        test_size = len(raw_set) - train_size
-        training_set, testing_set = raw_set[0:train_size, :], raw_set[train_size:len(dataset), :]
+        train_size = int(len(dataset) * 0.67) # 67% Train
+        test_size = len(dataset) - train_size
+        training_set, testing_set = dataset[0:train_size, :], dataset[train_size:len(dataset), :]
 
         # Feature Scaling
         sc = preprocessing.MinMaxScaler(feature_range=(0, 1))
@@ -38,6 +39,8 @@ class Training():
         return training_set_scaled
 
     def train(self, raw_set, label):
+        print(f'########  training {label}')
+
         training_set_scaled = self.prep_sets(raw_set)
 
         # create training sets ready for ML
@@ -80,7 +83,7 @@ class Training():
         # print(f'prediction = {predict}')
 
         # save model
-        regressor.save(f'/models/EMR-3_RNN_{label}.h5')
+        regressor.save(f'/models/EMR-v4_RNN_{label}.h5')
         print (f'saved_RNN {label}')
 
 

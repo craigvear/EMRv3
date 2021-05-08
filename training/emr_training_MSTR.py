@@ -6,9 +6,7 @@ from pandas import read_json
 # consts
 dataset_dir = glob('dataset/*.json')
 
-
-# create array from JSON and pass to
-
+# create array from JSON and pass to training
 def create_array(location, feature, subfeature = None, subsubfeature = None):
     print(f'creating array for {feature}, location {location}')
     # reset temp array
@@ -41,15 +39,19 @@ def main():
     print('starting to train')
 
     # 1st RNN = affect in(y) - move out(x)
+    print('     1st RNN = affect in(y) - move out(x)')
     conv.train(nose_array, bitalino_array, 'affect-move')
 
     # 2nd RNN = move in(y) - affect out(x)
+    print('     2nd RNN = move in(y) - affect out(x)')
     conv.train(bitalino_array, nose_array, 'move-affect')
 
     # 3 skeleton (nose only)
+    print('     3 skeleton (nose only)')
     rnn.train(nose_array, 'skeleton_data.nose.x')
 
     # 4 bitalino
+    print('     4 bitalino')
     rnn.train(bitalino_array, 'bitalino')
 
 if __name__ == "__main__":
