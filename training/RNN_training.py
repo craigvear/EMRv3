@@ -83,7 +83,7 @@ class Training():
         # print(f'prediction = {predict}')
 
         # save model
-        regressor.save(f'/models/EMR-v4_RNN_{label}.h5')
+        regressor.save(f'models/EMR-v4_RNN_{label}.h5')
         print (f'saved_RNN {label}')
 
 
