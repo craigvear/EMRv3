@@ -19,7 +19,7 @@ from time import time
 from tensorflow.keras.models import load_model
 import numpy as np
 import sys
-import pickle
+import pickle5 as pickle
 
 # --------------------------------------------------
 #

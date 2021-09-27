@@ -30,7 +30,7 @@ class Client:
 
         # instantiate sound object
         self.bot_left = SoundBot()
-        self.bot_right = SoundBot()
+        # self.bot_right = SoundBot()
 
         # build send data dict
         self.send_data_dict = {'mic_level': 0,
@@ -75,7 +75,7 @@ class Client:
 
             # calc temp timing
             rnd_dur = random()
-            left_duration = rnd_dur + left_rhythm_rate
+            left_duration = rnd_dur + left_rhythm_rate * 10
 
             # make a sound at calc duration
             self.bot_left.play_sound(left_master_data, left_duration)
@@ -129,9 +129,9 @@ class Client:
                 print("parent: spawning left bot ...")
                 nursery.start_soon(self.left)
 
-                # spawning right independent soundbot
-                print("parent: spawning right bot ...")
-                nursery.start_soon(self.right)
+                # # spawning right independent soundbot
+                # print("parent: spawning right bot ...")
+                # nursery.start_soon(self.right)
 
     def parent_go(self):
         while self.running:
@@ -143,9 +143,9 @@ class Client:
     def main(self):
         # snd_listen and client need dependent threads.
         # All other IO is ok as a single Trio thread inside self.client
-        tasks = [self.snd_listen, self.client, self.parent_go]
+        tasks = [self.client, self.snd_listen]#, self.left]
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = {executor.submit(task): task for task in tasks}
 
 

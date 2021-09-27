@@ -32,19 +32,19 @@ def main():
     nose_array = create_array(4, 'skeleton', 'nose', 'x')
 
     # instantiate training class objects
-    # conv = CONV.Training()
+    conv = CONV.Training()
     rnn = RNN.Training()
 
     # go get 'em cowgirl
     print('starting to train')
 
-    # # 1st RNN = affect in(y) - move out(x)
-    # print('     1st RNN = affect in(y) - move out(x)')
-    # conv.train(nose_array, bitalino_array, 'affect-move')
-    #
-    # # 2nd RNN = move in(y) - affect out(x)
-    # print('     2nd RNN = move in(y) - affect out(x)')
-    # conv.train(bitalino_array, nose_array, 'move-affect')
+    # 1st RNN = affect in(y) - move out(x)
+    print('     1st RNN = affect in(y) - move out(x)')
+    conv.train(nose_array, bitalino_array, 'affect-move')
+
+    # 2nd RNN = move in(y) - affect out(x)
+    print('     2nd RNN = move in(y) - affect out(x)')
+    conv.train(bitalino_array, nose_array, 'move-affect')
 
     # 3 skeleton (nose only)
     print('     3 skeleton (nose only)')
